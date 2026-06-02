@@ -2066,9 +2066,17 @@ async function doSignIn(){
   const errEl=document.getElementById('signin-error');
   errEl.textContent='';
   if(!email||!pass){errEl.textContent='Please enter email and password.';return;}
-  const {error}=await supa.auth.signInWithPassword({email,password:pass});
+  const btn=document.querySelector('#auth-signin .auth-btn');
+  if(btn){btn.textContent='Signing in…';btn.disabled=true;}
+  const {data,error}=await supa.auth.signInWithPassword({email,password:pass});
+  if(btn){btn.textContent='Sign In';btn.disabled=false;}
   if(error){errEl.textContent=error.message;return;}
-  // onAuthStateChange will handle the rest
+  // Successful — load the app
+  currentUser=data.user;
+  currentUserRole=await getProfile(data.user.id);
+  document.getElementById('auth-overlay').classList.add('hidden');
+  updateAuthUI(data.user,currentUserRole);
+  await initData();
 }
 
 async function doSignUp(){
@@ -2137,22 +2145,6 @@ async function initData(){
   currentUserRole=await getProfile(session.user.id);
   document.getElementById('auth-overlay').classList.add('hidden');
   updateAuthUI(session.user, currentUserRole);
-
-  // Listen for auth changes (sign in/out from other tabs)
-  supa.auth.onAuthStateChange(async(event,sess)=>{
-    if(event==='SIGNED_IN'&&sess){
-      currentUser=sess.user;
-      currentUserRole=await getProfile(sess.user.id);
-      document.getElementById('auth-overlay').classList.add('hidden');
-      updateAuthUI(sess.user,currentUserRole);
-      await initData();
-    }
-    if(event==='SIGNED_OUT'){
-      currentUser=null; currentUserRole='user';
-      document.getElementById('auth-overlay').classList.remove('hidden');
-      updateAuthUI(null,'user');
-    }
-  });
   // Admin goes straight to admin panel without loading garden data
   if(currentUserRole==='admin' && !adminViewingUserId){
     renderAdminPanel();
