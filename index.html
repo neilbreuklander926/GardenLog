@@ -2199,6 +2199,7 @@ async function initData(){
         date_flowered:  p.flowering  || null,
         date_harvested: p.harvesting || null,
         date_removed:   p.removed    || null,
+        user_id:        currentUser?.id,
       }));
       const {data:insertedPlants, error:piErr} = await supa.from("plants")
         .insert(plantRows).select("id,plant_code");
@@ -2206,10 +2207,11 @@ async function initData(){
       const codeToId = {};
       (insertedPlants||[]).forEach(p=>codeToId[p.plant_code]=p.id);
       const logRows=[], harvestRows=[];
+      const uid = currentUser?.id;
       SEED_LOGS.forEach(l=>{
         const pid=codeToId[l.plant_code]; if(!pid) return;
-        logRows.push({plant_id:pid,log_date:l.log_date,watered:l.watered,fertilized:!!l.fertilizer_type,fertilizer_type:l.fertilizer_type||null});
-        if(l.harvest>0) harvestRows.push({plant_id:pid,harvest_date:l.log_date,quantity:l.harvest,weight_unit:weightUnit});
+        logRows.push({plant_id:pid,log_date:l.log_date,watered:l.watered,fertilized:!!l.fertilizer_type,fertilizer_type:l.fertilizer_type||null,user_id:uid});
+        if(l.harvest>0) harvestRows.push({plant_id:pid,harvest_date:l.log_date,quantity:l.harvest,weight_unit:weightUnit,user_id:uid});
       });
       if(logRows.length) await supa.from("daily_logs").insert(logRows);
       if(harvestRows.length) await supa.from("harvest_logs").insert(harvestRows);
@@ -3708,6 +3710,7 @@ async function savePlantInstance(){
   const row={
     garden_id:  DEFAULT_GARDEN_ID,
     season_id:  DEFAULT_SEASON_ID,
+    user_id:    currentUser?.id,
     catalog_id: catalogId,
     plant_code: plantCode,
     status:    "active",
@@ -4547,39 +4550,6 @@ function bulkHealthSelectSev(btn){
   bulkHealthSev=btn.dataset.hsev;
 }
 
-async function saveActivityEntry(dbId, plantCode){
-  const date   = document.getElementById("al-date")?.value||isoDate(TODAY);
-  const watered= document.getElementById("al-water")?.checked||false;
-  const fert   = document.getElementById("al-fert")?.checked||false;
-  const fertType=document.getElementById("al-fert-type")?.value||null;
-  const qty    = parseInt(document.getElementById("al-harvest")?.value)||0;
-  const weight = parseFloat(document.getElementById("al-weight")?.value)||null;
-  const notes  = document.getElementById("al-notes")?.value||"";
-  const fertNotes= document.getElementById("al-fert-notes")?.value.trim()||null;
-  const quality= parseInt(document.getElementById("al-quality")?.value)||null;
-  const {data:existing}=await supa.from("daily_logs").select("id").eq("plant_id",dbId).eq("log_date",date).maybeSingle();
-  const logRow={plant_id:dbId,log_date:date,watered,fertilized:fert,fertilizer_type:fert&&fertType?fertType:null,fertilizer_notes:fert?fertNotes:null,notes:notes||null};
-  if(existing?.id) await supa.from("daily_logs").update(logRow).eq("id",existing.id);
-  else await supa.from("daily_logs").insert(logRow);
-  if(qty>0){
-    const {data:existH}=await supa.from("harvest_logs").select("id").eq("plant_id",dbId).eq("harvest_date",date).maybeSingle();
-    const hRow={plant_id:dbId,harvest_date:date,quantity:qty,weight_value:weight,weight_unit:weightUnit,quality_rating:quality};
-    if(existH?.id) await supa.from("harvest_logs").update(hRow).eq("id",existH.id);
-    else await supa.from("harvest_logs").insert(hRow);
-    const lp=PLANTS.find(p=>p._dbId===dbId); if(lp) lp.totalHarvest=(lp.totalHarvest||0)+qty;
-    const key=`${plantCode}|${date}`; if(!DAILY_LOGS[key]) DAILY_LOGS[key]={}; DAILY_LOGS[key].harvest=qty;
-  }
-  const key=`${plantCode}|${date}`;
-  if(!DAILY_LOGS[key]) DAILY_LOGS[key]={};
-  DAILY_LOGS[key].watered  = watered;
-  DAILY_LOGS[key].fertilizer = fert&&fertType?fertType:(fert?"other":null);
-  if(qty>0) DAILY_LOGS[key].harvest = qty;
-  const plant=PLANTS.find(p=>p._dbId===dbId);
-  const cat=CATALOG.find(c=>c.common_name===plant?.type||c.variety===plant?.type)||{};
-  await renderPlantDetailTab("activity", plant, cat);
-  render();
-}
-
 // ── Star rating helpers ───────────────────────────────────────────────────────
 function setStarRating(n){
   document.getElementById('al-quality').value=n;
@@ -4660,7 +4630,7 @@ async function saveHarvestEdit(){
   const quality=parseInt(document.getElementById('hev-quality').value)||null;
   if(!qty){ alert('Harvest count is required.'); return; }
   await supa.from('harvest_logs').update({
-    quantity:qty, weight_value:wt, quality_rating:quality, weight_unit:weightUnit
+    quantity:qty, weight_value:wt, quality_rating:quality, weight_unit:weightUnit, user_id:activeUserId()
   }).eq('id',id);
   closeHarvestEdit();
   const plant=PLANTS.find(p=>p._dbId===dbId);
@@ -4721,11 +4691,11 @@ async function saveActivityEdit(){
   const quality=parseInt(document.getElementById('aev-quality').value)||null;
   const notes=document.getElementById('aev-notes').value||'';
   const logRow={plant_id:dbId,log_date:date,watered,fertilized:fert,
-    fertilizer_type:fert&&fertType?fertType:null,fertilizer_notes:fert?fertNotes:null,notes:notes||null};
+    fertilizer_type:fert&&fertType?fertType:null,fertilizer_notes:fert?fertNotes:null,notes:notes||null,user_id:activeUserId()};
   if(logId) await supa.from('daily_logs').update(logRow).eq('id',logId);
   else await supa.from('daily_logs').upsert(withUser(logRow),{onConflict:'plant_id,log_date'});
   if(qty>0||harvestId){
-    const hRow={plant_id:dbId,harvest_date:date,quantity:qty,weight_value:weight,weight_unit:weightUnit,quality_rating:quality};
+    const hRow={plant_id:dbId,harvest_date:date,quantity:qty,weight_value:weight,weight_unit:weightUnit,quality_rating:quality,user_id:activeUserId()};
     if(harvestId) await supa.from('harvest_logs').update(hRow).eq('id',harvestId);
     else if(qty>0) await supa.from('harvest_logs').insert(withUser(hRow));
   }
@@ -5035,31 +5005,28 @@ async function saveActivityEntry(dbId, plantCode){
   const weight = parseFloat(document.getElementById("al-weight")?.value)||null;
   const notes  = document.getElementById("al-notes")?.value||"";
   const fertNotes= document.getElementById("al-fert-notes")?.value.trim()||null;
-  // Check for existing daily_log for this plant+date
+  const quality= parseInt(document.getElementById("al-quality")?.value)||null;
+  const uid = activeUserId();
   const {data:existing}=await supa.from("daily_logs").select("id").eq("plant_id",dbId).eq("log_date",date).maybeSingle();
-  const logRow={plant_id:dbId,log_date:date,watered,fertilized:fert,fertilizer_type:fert&&fertType?fertType:null,fertilizer_notes:fert?fertNotes:null,notes:notes||null};
+  const logRow={plant_id:dbId,log_date:date,watered,fertilized:fert,fertilizer_type:fert&&fertType?fertType:null,fertilizer_notes:fert?fertNotes:null,notes:notes||null,user_id:uid};
   if(existing?.id) await supa.from("daily_logs").update(logRow).eq("id",existing.id);
-  else await supa.from("daily_logs").insert(logRow);
+  else await supa.from("daily_logs").upsert(logRow,{onConflict:'plant_id,log_date'});
   if(qty>0){
     const {data:existH}=await supa.from("harvest_logs").select("id").eq("plant_id",dbId).eq("harvest_date",date).maybeSingle();
-    const hRow={plant_id:dbId,harvest_date:date,quantity:qty,weight_value:weight,weight_unit:weightUnit};
+    const hRow={plant_id:dbId,harvest_date:date,quantity:qty,weight_value:weight,weight_unit:weightUnit,quality_rating:quality,user_id:uid};
     if(existH?.id) await supa.from("harvest_logs").update(hRow).eq("id",existH.id);
     else await supa.from("harvest_logs").insert(hRow);
     const lp=PLANTS.find(p=>p._dbId===dbId); if(lp) lp.totalHarvest=(lp.totalHarvest||0)+qty;
     const key=`${plantCode}|${date}`; if(!DAILY_LOGS[key]) DAILY_LOGS[key]={}; DAILY_LOGS[key].harvest=qty;
   }
-  // Update local DAILY_LOGS so timeline reflects the new entry immediately
   const key=`${plantCode}|${date}`;
   if(!DAILY_LOGS[key]) DAILY_LOGS[key]={};
-  DAILY_LOGS[key].watered  = watered;
-  DAILY_LOGS[key].fertilizer = fert&&fertType?fertType:(fert?"other":null);
-  if(qty>0) DAILY_LOGS[key].harvest = qty;
-
-  // Refresh activity tab
+  DAILY_LOGS[key].watered=watered;
+  DAILY_LOGS[key].fertilizer=fert&&fertType?fertType:(fert?"other":null);
+  if(qty>0) DAILY_LOGS[key].harvest=qty;
   const plant=PLANTS.find(p=>p._dbId===dbId);
   const cat=CATALOG.find(c=>c.common_name===plant?.type||c.variety===plant?.type)||{};
-  await renderPlantDetailTab("activity", plant, cat);
-  // Re-render timeline in background so indicators update
+  await renderPlantDetailTab("activity",plant,cat);
   render();
 }
 
