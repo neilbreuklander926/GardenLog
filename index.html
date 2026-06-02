@@ -631,7 +631,28 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .log-save-btn:hover{background:#256A47}
   .log-saved-badge{display:inline-block;font-size:9px;background:#E8F5EE;color:#2E7D4F;border:1px solid #A8D8B8;border-radius:4px;padding:2px 7px;margin-left:6px;vertical-align:middle}
 
-  /* ── Plant Detail Tabs ── */
+  /* ── Auth / Login ── */
+  #auth-overlay{position:fixed;inset:0;background:var(--nav);z-index:9999;display:flex;align-items:center;justify-content:center}
+  #auth-overlay.hidden{display:none}
+  .auth-box{background:#fff;border-radius:16px;padding:40px 44px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .auth-logo{font-family:'Fraunces',serif;font-size:24px;font-weight:700;color:var(--nav);margin-bottom:4px}
+  .auth-sub{font-size:11px;color:#888;margin-bottom:28px}
+  .auth-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:24px}
+  .auth-tab{flex:1;padding:8px;font-size:11px;font-family:'DM Mono',monospace;border:none;background:none;cursor:pointer;color:#888;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .auth-tab.active{color:var(--nav);font-weight:700;border-bottom-color:var(--nav)}
+  .auth-field{margin-bottom:14px}
+  .auth-label{display:block;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:5px}
+  .auth-input{width:100%;border:1px solid var(--border);border-radius:7px;padding:9px 12px;font-size:12px;font-family:'DM Mono',monospace;box-sizing:border-box}
+  .auth-input:focus{outline:none;border-color:var(--nav);box-shadow:0 0 0 2px rgba(30,77,53,.1)}
+  .auth-btn{width:100%;background:var(--nav);color:#fff;border:none;border-radius:7px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Mono',monospace;margin-top:4px}
+  .auth-btn:hover{background:#256A47}
+  .auth-error{font-size:11px;color:#B33A1F;margin-top:10px;text-align:center;min-height:16px}
+  /* Admin badge */
+  #admin-badge{background:#E05C30;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;letter-spacing:.06em;text-transform:uppercase;margin-right:2px}
+  #user-info{display:flex;align-items:center;gap:8px;margin-right:4px}
+  #user-email{font-size:10px;color:rgba(255,255,255,.7);font-family:'DM Mono',monospace;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #signout-btn{background:rgba(255,255,255,.12);border:0.5px solid rgba(255,255,255,.25);color:rgba(255,255,255,.8);font-size:10px;padding:4px 9px;border-radius:5px;cursor:pointer;font-family:'DM Mono',monospace}
+  #signout-btn:hover{background:rgba(255,255,255,.22)}
   .pd-tab{background:transparent;border:none;padding:10px 18px;font-size:11px;font-family:'DM Mono',monospace;color:#777;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap}
   .pd-tab:hover{color:var(--nav);background:#F7F4EF}
   .pd-tab.active{color:var(--nav);font-weight:700;border-bottom-color:var(--nav)}
@@ -690,11 +711,17 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   <div id="logo">🌱 GardenLog</div>
   <button class="tab-btn active" data-tab="gantt"  onclick="switchTab('gantt')">📅 Timeline</button>
   <button class="tab-btn"        data-tab="plants" onclick="switchTab('plants')">🌿 Plant Database</button>
-  <button class="tab-btn"        data-tab="log"    onclick="switchTab('log')">📋 Plant Log</button>
-  <button class="tab-btn"        data-tab="photos" onclick="switchTab('photos')">📷 Photos</button>
-  <button class="tab-btn"        data-tab="notes"  onclick="switchTab('notes')">📓 Notes</button>
+  <button class="tab-btn"        data-tab="log"    onclick="switchTab('log')" id="tab-log">📋 Plant Log</button>
+  <button class="tab-btn"        data-tab="photos" onclick="switchTab('photos')" id="tab-photos">📷 Photos</button>
+  <button class="tab-btn"        data-tab="notes"  onclick="switchTab('notes')" id="tab-notes">📓 Notes</button>
+  <button class="tab-btn"        data-tab="admin"  onclick="switchTab('admin')" id="tab-admin" style="display:none;color:#E05C30">👤 Admin</button>
   <!-- Right-aligned actions -->
   <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+    <div id="user-info" style="display:none">
+      <span id="admin-badge" style="display:none">ADMIN</span>
+      <span id="user-email"></span>
+      <button id="signout-btn" onclick="doSignOut()">Sign Out</button>
+    </div>
     <div style="position:relative" id="new-plant-wrap">
       <button id="new-plant-btn" onclick="toggleNewPlantMenu(event)">+ New Plant ▾</button>
       <div id="new-plant-menu" style="display:none;position:fixed;background:#fff;border:1px solid var(--border);
@@ -873,6 +900,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   <div id="view-settings" style="display:none;flex-direction:column;height:calc(100vh - 52px);overflow-y:auto;background:var(--bg)">
     <div id="settings-tab-content" style="max-width:600px;margin:32px auto;padding:0 24px;width:100%"></div>
   </div>
+  <div id="view-admin" style="display:none;flex-direction:column;height:calc(100vh - 52px);overflow-y:auto;background:var(--bg)">
+    <div id="admin-tab-content" style="max-width:900px;margin:32px auto;padding:0 24px;width:100%"></div>
+  </div>
 
   <!-- ── CATALOG ADD/EDIT MODAL ── -->
   <div id="catalog-overlay" onclick="if(event.target.id==='catalog-overlay')closeCatalogModal()" style="display:none;position:fixed;inset:0;background:rgba(20,30,25,.5);z-index:500;align-items:center;justify-content:center">
@@ -955,6 +985,30 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 </div>
 
 <!-- Loading overlay -->
+<!-- ── Auth Screen ── -->
+<div id="auth-overlay">
+  <div class="auth-box">
+    <div class="auth-logo">🌱 GardenLog</div>
+    <div class="auth-sub">Track your garden, harvests, and growth</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('signin')">Sign In</button>
+      <button class="auth-tab" onclick="switchAuthTab('signup')">Create Account</button>
+    </div>
+    <div id="auth-signin">
+      <div class="auth-field"><label class="auth-label">Email</label><input class="auth-input" id="signin-email" type="email" placeholder="you@example.com" autocomplete="email"/></div>
+      <div class="auth-field"><label class="auth-label">Password</label><input class="auth-input" id="signin-password" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doSignIn()"/></div>
+      <button class="auth-btn" onclick="doSignIn()">Sign In</button>
+      <div class="auth-error" id="signin-error"></div>
+    </div>
+    <div id="auth-signup" style="display:none">
+      <div class="auth-field"><label class="auth-label">Email</label><input class="auth-input" id="signup-email" type="email" placeholder="you@example.com" autocomplete="email"/></div>
+      <div class="auth-field"><label class="auth-label">Password</label><input class="auth-input" id="signup-password" type="password" placeholder="Min 6 characters" autocomplete="new-password" onkeydown="if(event.key==='Enter')doSignUp()"/></div>
+      <button class="auth-btn" onclick="doSignUp()">Create Account</button>
+      <div class="auth-error" id="signup-error"></div>
+    </div>
+  </div>
+</div>
+
 <div id="loading-overlay">
   <div class="loading-spinner"></div>
   <div class="loading-text" id="loading-text">Connecting to database…</div>
@@ -1297,6 +1351,12 @@ let userZone    = "10b";
 let showIdealCycle  = false;
 let showProjections = true;
 let weightUnit = 'oz';
+let currentUser = null;
+let currentUserRole = 'user';
+let adminViewingUserId = null; // when admin is viewing another user's data
+
+// Inject user_id into any row being inserted
+function withUser(row){ return {...row, user_id: activeUserId()}; }
 
 // ── Undo / Redo engine ────────────────────────────────────────────────────────
 let undoStack = [];   // [{description, undo, redo}]
@@ -1977,6 +2037,7 @@ async function dbInsertPlant(plant){
   const row = {
     garden_id:    DEFAULT_GARDEN_ID,
     season_id:    DEFAULT_SEASON_ID,
+    user_id:      currentUser?.id,
     catalog_id:   cat?.id || null,
     plant_code:   plant.id,
     status:       plant.status || "active",
@@ -1992,8 +2053,114 @@ async function dbInsertPlant(plant){
 }
 
 // ── initData: load everything from Supabase ───────────────────────────────────
+// ── Auth functions ────────────────────────────────────────────────────────────
+function switchAuthTab(tab){
+  document.getElementById('auth-signin').style.display=tab==='signin'?'block':'none';
+  document.getElementById('auth-signup').style.display=tab==='signup'?'block':'none';
+  document.querySelectorAll('.auth-tab').forEach((b,i)=>b.classList.toggle('active',(tab==='signin'&&i===0)||(tab==='signup'&&i===1)));
+}
+
+async function doSignIn(){
+  const email=document.getElementById('signin-email').value.trim();
+  const pass=document.getElementById('signin-password').value;
+  const errEl=document.getElementById('signin-error');
+  errEl.textContent='';
+  if(!email||!pass){errEl.textContent='Please enter email and password.';return;}
+  const {error}=await supa.auth.signInWithPassword({email,password:pass});
+  if(error){errEl.textContent=error.message;return;}
+  // onAuthStateChange will handle the rest
+}
+
+async function doSignUp(){
+  const email=document.getElementById('signup-email').value.trim();
+  const pass=document.getElementById('signup-password').value;
+  const errEl=document.getElementById('signup-error');
+  errEl.textContent='';
+  if(!email||!pass){errEl.textContent='Please enter email and password.';return;}
+  if(pass.length<6){errEl.textContent='Password must be at least 6 characters.';return;}
+  const {error}=await supa.auth.signUp({email,password:pass});
+  if(error){errEl.textContent=error.message;return;}
+  errEl.style.color='#2E7D4F';
+  errEl.textContent='Account created! Check your email to confirm, then sign in.';
+}
+
+async function doSignOut(){
+  adminViewingUserId=null;
+  await supa.auth.signOut();
+  currentUser=null; currentUserRole='user';
+  updateAuthUI(null,'user');
+  document.getElementById('auth-overlay').classList.remove('hidden');
+}
+
+function updateAuthUI(user, role){
+  const userInfo=document.getElementById('user-info');
+  const adminBadge=document.getElementById('admin-badge');
+  const userEmail=document.getElementById('user-email');
+  const adminTab=document.getElementById('tab-admin');
+  const logTab=document.getElementById('tab-log');
+  const photosTab=document.getElementById('tab-photos');
+  const notesTab=document.getElementById('tab-notes');
+  if(user){
+    userInfo.style.display='flex';
+    userEmail.textContent=user.email;
+    adminBadge.style.display=role==='admin'?'inline-block':'none';
+    adminTab.style.display=role==='admin'?'inline-block':'none';
+    // Admin doesn't see personal tabs
+    if(logTab) logTab.style.display=role==='admin'?'none':'inline-block';
+    if(photosTab) photosTab.style.display=role==='admin'?'none':'inline-block';
+    if(notesTab) notesTab.style.display=role==='admin'?'none':'inline-block';
+  } else {
+    userInfo.style.display='none';
+    adminBadge.style.display='none';
+    adminTab.style.display='none';
+  }
+}
+
+async function getProfile(userId){
+  const {data}=await supa.from('profiles').select('user_role').eq('id',userId).single();
+  return data?.user_role||'user';
+}
+
+function activeUserId(){
+  // Admin viewing another user returns that user's ID, otherwise current user
+  return adminViewingUserId || currentUser?.id;
+}
+
 async function initData(){
-  initBulkPanels(); // Build bulk panels as direct body children — avoids fixed-position stacking context bugs
+  // ── Check auth state first ────────────────────────────────────────────────
+  const {data:{session}}=await supa.auth.getSession();
+  if(!session){
+    document.getElementById('auth-overlay').classList.remove('hidden');
+    return;
+  }
+  currentUser=session.user;
+  currentUserRole=await getProfile(session.user.id);
+  document.getElementById('auth-overlay').classList.add('hidden');
+  updateAuthUI(session.user, currentUserRole);
+
+  // Listen for auth changes (sign in/out from other tabs)
+  supa.auth.onAuthStateChange(async(event,sess)=>{
+    if(event==='SIGNED_IN'&&sess){
+      currentUser=sess.user;
+      currentUserRole=await getProfile(sess.user.id);
+      document.getElementById('auth-overlay').classList.add('hidden');
+      updateAuthUI(sess.user,currentUserRole);
+      await initData();
+    }
+    if(event==='SIGNED_OUT'){
+      currentUser=null; currentUserRole='user';
+      document.getElementById('auth-overlay').classList.remove('hidden');
+      updateAuthUI(null,'user');
+    }
+  });
+  // Admin goes straight to admin panel without loading garden data
+  if(currentUserRole==='admin' && !adminViewingUserId){
+    renderAdminPanel();
+    switchTab('admin');
+    return;
+  }
+
+  initBulkPanels();
   const overlay  = document.getElementById("loading-overlay");
   const loadText = document.getElementById("loading-text");
   const loadErr  = document.getElementById("loading-error");
@@ -2058,9 +2225,10 @@ async function initData(){
 
     // 4. Fetch plants with catalog
     loadText.textContent = "Loading plant data…";
+    const uid = activeUserId();
     const {data:plantsData, error:pErr} = await supa.from("plants")
       .select("*, plant_catalog(family,common_name,category,subcategory,variety,days_to_sprout,days_to_flower,days_to_harvest,harvest_window,is_perennial)")
-      .eq("garden_id", DEFAULT_GARDEN_ID)
+      .eq("user_id", uid)
       .order("plant_code");
     if(pErr) throw new Error("Fetch plants: " + pErr.message);
 
@@ -3103,6 +3271,58 @@ function toggleLegend(){
   const open=p.classList.toggle('open');
   b.textContent=open?'Legend ▴':'Legend ▾';
 }
+// ── Admin Panel ───────────────────────────────────────────────────────────────
+async function renderAdminPanel(){
+  const c=document.getElementById('admin-tab-content'); if(!c) return;
+  c.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+    <h2 style="font-family:'Fraunces',serif;font-size:22px;font-weight:600;color:var(--nav)">👤 Admin Panel</h2>
+    ${adminViewingUserId?`<button onclick="stopViewingAsUser()" style="background:#FEEDE8;border:1px solid #F5C0B0;border-radius:7px;padding:7px 14px;font-size:11px;cursor:pointer;color:#B33A1F">← Stop viewing as user</button>`:''}
+  </div>
+  <div id="admin-user-list"><div style="color:#888;font-size:11px">Loading users…</div></div>`;
+
+  const {data:profiles}=await supa.from('profiles').select('id,email,user_role,created_at').order('created_at',{ascending:false});
+  if(!profiles){c.querySelector('#admin-user-list').innerHTML='<div style="color:#B33A1F;font-size:11px">Could not load users.</div>';return;}
+
+  const rows=profiles.map(p=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);background:#fff">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:600;color:var(--nav)">${p.email}</div>
+        <div style="font-size:10px;color:#888;margin-top:2px">Joined ${new Date(p.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+      </div>
+      <span style="background:${p.user_role==='admin'?'#E05C30':'#EEF4EC'};color:${p.user_role==='admin'?'#fff':'#2E7D4F'};font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase">${p.user_role}</span>
+      ${p.user_role!=='admin'?`<button onclick="viewAsUser('${p.id}','${p.email}')"
+        style="background:var(--nav);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;font-family:inherit">View Garden</button>`:''}
+    </div>`).join('');
+
+  c.querySelector('#admin-user-list').innerHTML=`
+    <div class="pd-section" style="background:#fff;border-radius:10px;border:1px solid var(--border);overflow:hidden">
+      <div class="pd-section-hdr">Users (${profiles.length})</div>
+      ${rows}
+    </div>`;
+}
+
+async function viewAsUser(userId, email){
+  adminViewingUserId=userId;
+  // Load that user's garden data then switch to timeline
+  await initData();
+  switchTab('gantt');
+  // Show banner
+  const banner=document.createElement('div');
+  banner.id='admin-view-banner';
+  banner.style.cssText='position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#E05C30;color:#fff;padding:8px 20px;border-radius:8px;font-size:11px;font-family:DM Mono,monospace;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,.2)';
+  banner.innerHTML=`👁 Viewing as ${email} <button onclick="stopViewingAsUser()" style="background:rgba(255,255,255,.25);border:none;border-radius:4px;padding:2px 8px;margin-left:10px;cursor:pointer;color:#fff;font-family:inherit;font-size:10px">Stop</button>`;
+  document.getElementById('admin-view-banner')?.remove();
+  document.body.appendChild(banner);
+}
+
+async function stopViewingAsUser(){
+  adminViewingUserId=null;
+  document.getElementById('admin-view-banner')?.remove();
+  // Reload admin's own data (none) and go back to admin panel
+  PLANTS=[]; DAILY_LOGS={}; render();
+  switchTab('admin');
+}
+
 // ── Ideal cycle toggle ────────────────────────────────────────────────────────
 function toggleIdealCycle(){
   showIdealCycle=!showIdealCycle;
@@ -3127,7 +3347,7 @@ function toggleDates(){
   wrap.scrollLeft=sx;wrap.scrollTop=sy;
 }
 function switchTab(tab){
-  ["gantt","plants","log","photos","notes","settings"].forEach(t=>{
+  ["gantt","plants","log","photos","notes","settings","admin"].forEach(t=>{
     const v=document.getElementById("view-"+t);
     if(v) v.style.display=t===tab?"flex":"none";
     const btn=document.querySelector(`[data-tab="${t}"]`);
@@ -3138,6 +3358,7 @@ function switchTab(tab){
   if(tab==="photos") renderGardenPhotos();
   if(tab==="notes")  renderGardenNotes();
   if(tab==="settings") renderSettingsTab();
+  if(tab==="admin")  renderAdminPanel();
 }
 
 function renderSettingsTab(){
@@ -4509,11 +4730,11 @@ async function saveActivityEdit(){
   const logRow={plant_id:dbId,log_date:date,watered,fertilized:fert,
     fertilizer_type:fert&&fertType?fertType:null,fertilizer_notes:fert?fertNotes:null,notes:notes||null};
   if(logId) await supa.from('daily_logs').update(logRow).eq('id',logId);
-  else await supa.from('daily_logs').upsert({...logRow},{onConflict:'plant_id,log_date'});
+  else await supa.from('daily_logs').upsert(withUser(logRow),{onConflict:'plant_id,log_date'});
   if(qty>0||harvestId){
     const hRow={plant_id:dbId,harvest_date:date,quantity:qty,weight_value:weight,weight_unit:weightUnit,quality_rating:quality};
     if(harvestId) await supa.from('harvest_logs').update(hRow).eq('id',harvestId);
-    else if(qty>0) await supa.from('harvest_logs').insert(hRow);
+    else if(qty>0) await supa.from('harvest_logs').insert(withUser(hRow));
   }
   const key=`${plantCode}|${date}`;
   if(!DAILY_LOGS[key]) DAILY_LOGS[key]={};
@@ -4597,7 +4818,7 @@ async function savePlantPhotos(dbId, plantCode){
     const {error:upErr}=await supa.storage.from('garden-photos').upload(path,file,{upsert:false});
     if(upErr){ console.error('Upload error:',upErr); continue; }
     const {data:urlData}=supa.storage.from('garden-photos').getPublicUrl(path);
-    await supa.from('plant_photos').insert({plant_id:dbId,photo_date:date,photo_url:urlData.publicUrl,notes});
+    await supa.from('plant_photos').insert(withUser({plant_id:dbId,photo_date:date,photo_url:urlData.publicUrl,notes}));
   }
   const plant=PLANTS.find(p=>p._dbId===dbId);
   const cat=plant?CATALOG.find(c=>c.id===plant.catalog_id)||{}:{};
@@ -4686,7 +4907,7 @@ async function saveGardenPhotos(){
     const {error:upErr}=await supa.storage.from('garden-photos').upload(path,file,{upsert:false});
     if(upErr){ console.error(upErr); continue; }
     const {data:urlData}=supa.storage.from('garden-photos').getPublicUrl(path);
-    await supa.from('garden_photos').insert({photo_date:date,photo_url:urlData.publicUrl,notes});
+    await supa.from('garden_photos').insert(withUser({photo_date:date,photo_url:urlData.publicUrl,notes}));
   }
   renderGardenPhotos();
 }
@@ -4750,7 +4971,7 @@ async function saveGardenNote(){
   const date=document.getElementById('gn-date')?.value||isoDate(TODAY);
   const content=document.getElementById('gn-content')?.value.trim();
   if(!content){ alert('Please enter a note.'); return; }
-  await supa.from('garden_notes').insert({note_date:date,content});
+  await supa.from('garden_notes').insert(withUser({note_date:date,content}));
   document.getElementById('gn-content').value='';
   renderGardenNotes();
 }
