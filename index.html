@@ -2181,7 +2181,7 @@ async function initData(){
     // 3. Check if plants exist; seed if not
     loadText.textContent = "Loading plants…";
     const {data:existing} = await supa.from("plants")
-      .select("id").eq("garden_id", DEFAULT_GARDEN_ID).limit(1);
+      .select("id").eq("user_id", currentUser.id).limit(1);
 
     if(!existing || existing.length === 0){
       loadText.textContent = "First run — seeding plant data…";
