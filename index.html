@@ -3137,6 +3137,164 @@ function getActivePlantsForBulk(){
   return PLANTS.filter(p=>!p.archived&&!p.removed);
 }
 
+function getActivePlantsForBulk(){
+  return PLANTS.filter(p=>!p.archived&&!p.removed);
+}
+
+function closeBulkPanel(){
+  ['bulk-water-overlay','bulk-fert-overlay','bulk-harvest-overlay','bulk-health-overlay']
+    .forEach(id=>document.getElementById(id)?.classList.remove('open'));
+}
+
+// ── Bulk Water ────────────────────────────────────────────────────────────────
+function openBulkWater(dateStr){
+  bulkActionDate=dateStr;
+  const plants=getActivePlantsForBulk();
+  document.getElementById('bw-date').textContent=fmt(dateStr);
+  const list=document.getElementById('bw-plant-list');
+  list.innerHTML=plants.map(p=>`
+    <div class="bulk-plant-row" data-pid="${p.id}" data-checked="true">
+      <span style="background:var(--nav);color:#fff;font-size:9px;padding:2px 5px;border-radius:3px;font-family:'DM Mono',monospace">${p.id}</span>
+      <span class="bulk-plant-name">${p.type}</span>
+      <div onclick="bulkTogglePlant(this)" class="bulk-check on">✓</div>
+    </div>`).join('');
+  updateBulkCounts('water');
+  document.getElementById('bulk-water-overlay').classList.add('open');
+}
+
+async function saveBulkWater(){
+  const date=bulkActionDate;
+  const rows=document.querySelectorAll('#bw-plant-list .bulk-plant-row');
+  for(const row of rows){
+    if(row.dataset.checked!=='true') continue;
+    const pid=row.dataset.pid;
+    const plant=PLANTS.find(p=>p.id===pid); if(!plant||!plant._dbId) continue;
+    await supa.from('daily_logs').upsert(
+      withUser({plant_id:plant._dbId,log_date:date,watered:true,fertilized:false}),
+      {onConflict:'plant_id,log_date',ignoreDuplicates:false});
+    const key=`${pid}|${date}`;
+    if(!DAILY_LOGS[key]) DAILY_LOGS[key]={watered:false,fertilizer:null,harvest:0,health:false};
+    DAILY_LOGS[key].watered=true;
+  }
+  closeBulkPanel(); render();
+}
+
+// ── Bulk Fertilize ────────────────────────────────────────────────────────────
+let bulkFertType=null;
+function bulkFertSelectType(btn){
+  document.querySelectorAll('[data-ftype]').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on'); bulkFertType=btn.dataset.ftype;
+}
+function openBulkFert(dateStr){
+  bulkActionDate=dateStr; bulkFertType=null;
+  const plants=getActivePlantsForBulk();
+  document.getElementById('bf-date').textContent=fmt(dateStr);
+  document.getElementById('bf-notes').value='';
+  document.querySelectorAll('[data-ftype]').forEach(b=>b.classList.remove('on'));
+  const list=document.getElementById('bf-plant-list');
+  list.innerHTML=plants.map(p=>`
+    <div class="bulk-plant-row" data-pid="${p.id}" data-checked="true">
+      <span style="background:var(--nav);color:#fff;font-size:9px;padding:2px 5px;border-radius:3px;font-family:'DM Mono',monospace">${p.id}</span>
+      <span class="bulk-plant-name">${p.type}</span>
+      <div onclick="bulkTogglePlant(this)" class="bulk-check on">✓</div>
+    </div>`).join('');
+  updateBulkCounts('fert');
+  document.getElementById('bulk-fert-overlay').classList.add('open');
+}
+async function saveBulkFert(){
+  const date=bulkActionDate;
+  const notes=document.getElementById('bf-notes')?.value.trim()||null;
+  const rows=document.querySelectorAll('#bf-plant-list .bulk-plant-row');
+  for(const row of rows){
+    if(row.dataset.checked!=='true') continue;
+    const pid=row.dataset.pid;
+    const plant=PLANTS.find(p=>p.id===pid); if(!plant||!plant._dbId) continue;
+    await supa.from('daily_logs').upsert(
+      withUser({plant_id:plant._dbId,log_date:date,fertilized:true,fertilizer_type:bulkFertType||null,fertilizer_notes:notes}),
+      {onConflict:'plant_id,log_date',ignoreDuplicates:false});
+    const key=`${pid}|${date}`;
+    if(!DAILY_LOGS[key]) DAILY_LOGS[key]={watered:false,fertilizer:null,harvest:0,health:false};
+    DAILY_LOGS[key].fertilizer=bulkFertType||'other';
+  }
+  closeBulkPanel(); render();
+}
+
+// ── Bulk Harvest ──────────────────────────────────────────────────────────────
+function openBulkHarvest(dateStr){
+  bulkActionDate=dateStr;
+  const plants=getActivePlantsForBulk();
+  document.getElementById('bh-date').textContent=fmt(dateStr);
+  const list=document.getElementById('bh-plant-list');
+  list.innerHTML=plants.map(p=>`
+    <div class="bulk-plant-row" data-pid="${p.id}" style="flex-wrap:wrap;gap:6px">
+      <span style="background:var(--nav);color:#fff;font-size:9px;padding:2px 5px;border-radius:3px;font-family:'DM Mono',monospace;flex-shrink:0">${p.id}</span>
+      <span class="bulk-plant-name">${p.type}</span>
+      <div class="bulk-harvest-inputs">
+        <input type="number" min="0" placeholder="ct" class="bh-count" style="width:52px;border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:11px;text-align:center;background:var(--fbg);color:inherit"/>
+        <span class="bulk-unit">ct</span>
+        <input type="number" min="0" step="0.1" placeholder="${weightUnit}" class="bh-weight" style="width:60px;border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:11px;text-align:center;background:var(--fbg);color:inherit"/>
+        <span class="bulk-unit">${weightUnit}</span>
+        <span style="font-size:14px;color:#DDD;cursor:pointer;letter-spacing:1px" class="bh-stars" data-rating="0"
+          onclick="setBulkStar(this,event)" title="Quality">★★★★★</span>
+        <button onclick="clearBulkStar(this)" style="background:none;border:none;font-size:10px;color:#AAA;cursor:pointer;padding:0 2px;text-decoration:underline">✕</button>
+        <input type="hidden" class="bh-quality" value="0"/>
+      </div>
+    </div>`).join('');
+  document.getElementById('bulk-harvest-overlay').classList.add('open');
+}
+async function saveBulkHarvest(){
+  const date=bulkActionDate;
+  const rows=document.querySelectorAll('#bh-plant-list .bulk-plant-row');
+  for(const row of rows){
+    const pid=row.dataset.pid;
+    const qty=parseInt(row.querySelector('.bh-count').value)||0;
+    const wt=parseFloat(row.querySelector('.bh-weight').value)||null;
+    const quality=parseInt(row.querySelector('.bh-quality').value)||0;
+    if(!qty&&!wt) continue;
+    const plant=PLANTS.find(p=>p.id===pid); if(!plant||!plant._dbId) continue;
+    await supa.from('harvest_logs').insert(withUser({plant_id:plant._dbId,harvest_date:date,quantity:qty,weight_value:wt,weight_unit:weightUnit,quality_rating:quality||null}));
+    const key=`${pid}|${date}`;
+    if(!DAILY_LOGS[key]) DAILY_LOGS[key]={watered:false,fertilizer:null,harvest:0,health:false};
+    DAILY_LOGS[key].harvest=(DAILY_LOGS[key].harvest||0)+qty;
+    const lp=PLANTS.find(p=>p.id===pid); if(lp) lp.totalHarvest=(lp.totalHarvest||0)+qty;
+  }
+  closeBulkPanel(); render();
+}
+
+// ── Bulk toggle helpers ───────────────────────────────────────────────────────
+function bulkTogglePlant(checkEl){
+  const row=checkEl.closest('.bulk-plant-row');
+  const on=row.dataset.checked==='true';
+  row.dataset.checked=on?'false':'true';
+  checkEl.classList.toggle('on',!on);
+  checkEl.textContent=on?'':'✓';
+  const listId=row.closest('[id$="-plant-list"]')?.id||'';
+  if(listId==='bw-plant-list') updateBulkCounts('water');
+  else if(listId==='bf-plant-list') updateBulkCounts('fert');
+}
+function bulkToggleAll(type){
+  const listId=type==='water'?'bw-plant-list':type==='fert'?'bf-plant-list':'bhe-plant-list';
+  const allRows=document.querySelectorAll(`#${listId} .bulk-plant-row`);
+  const allOn=[...allRows].every(r=>r.dataset.checked==='true');
+  allRows.forEach(r=>{
+    r.dataset.checked=allOn?'false':'true';
+    const c=r.querySelector('.bulk-check');
+    if(c){ c.classList.toggle('on',!allOn); c.textContent=allOn?'':'✓'; }
+  });
+  updateBulkCounts(type);
+}
+function updateBulkCounts(type){
+  if(type==='water'){
+    const n=[...document.querySelectorAll('#bw-plant-list .bulk-plant-row')].filter(r=>r.dataset.checked==='true').length;
+    const lbl=document.getElementById('bw-count-lbl'); if(lbl) lbl.textContent=`${n} of ${PLANTS.length} plants selected`;
+    const btn=document.getElementById('bw-save-btn'); if(btn) btn.textContent=`Save watering — ${n} plant${n!==1?'s':''}`;
+  } else if(type==='fert'){
+    const n=[...document.querySelectorAll('#bf-plant-list .bulk-plant-row')].filter(r=>r.dataset.checked==='true').length;
+    const lbl=document.getElementById('bf-count-lbl'); if(lbl) lbl.textContent=`${n} of ${PLANTS.length} plants selected`;
+    const btn=document.getElementById('bf-save-btn'); if(btn) btn.textContent=`Save fertilizing — ${n} plant${n!==1?'s':''}`;
+  }
+}
+
 // ── Moon phase ─────────────────────────────────────────────────────────────────
 function moonPhaseEmoji(date){
   // Known new moon reference: Jan 6, 2000
