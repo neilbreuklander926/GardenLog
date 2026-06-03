@@ -1530,6 +1530,11 @@ function buildSegs(plant,bounds,W){
 
 // ── Flexible date input helpers ───────────────────────────────────────────────
 // Display ISO date as MM/DD/YYYY for the text input
+function fmt(iso){
+  if(!iso) return '';
+  const d=new Date(iso+'T00:00:00');
+  return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+}
 function fmtDateUS(iso){
   if(!iso) return "";
   const d=parseD(iso);
