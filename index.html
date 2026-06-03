@@ -3143,23 +3143,36 @@ function getActivePlantsForBulk(){
 
 function closeBulkPanel(){
   ['bulk-water-overlay','bulk-fert-overlay','bulk-harvest-overlay','bulk-health-overlay']
-    .forEach(id=>document.getElementById(id)?.classList.remove('open'));
+    .forEach(id=>{
+      const el=document.getElementById(id);
+      if(el){ el.classList.remove('open'); el.style.display='none'; }
+    });
+}
+
+function _openOverlay(id){
+  const el=document.getElementById(id);
+  if(!el){ console.error('Overlay not found:',id); return false; }
+  el.style.display='flex';
+  el.classList.add('open');
+  return true;
 }
 
 // ── Bulk Water ────────────────────────────────────────────────────────────────
 function openBulkWater(dateStr){
-  bulkActionDate=dateStr;
-  const plants=getActivePlantsForBulk();
-  document.getElementById('bw-date').textContent=fmt(dateStr);
-  const list=document.getElementById('bw-plant-list');
-  list.innerHTML=plants.map(p=>`
-    <div class="bulk-plant-row" data-pid="${p.id}" data-checked="true">
-      <span style="background:var(--nav);color:#fff;font-size:9px;padding:2px 5px;border-radius:3px;font-family:'DM Mono',monospace">${p.id}</span>
-      <span class="bulk-plant-name">${p.type}</span>
-      <div onclick="bulkTogglePlant(this)" class="bulk-check on">✓</div>
-    </div>`).join('');
-  updateBulkCounts('water');
-  document.getElementById('bulk-water-overlay').classList.add('open');
+  try{
+    bulkActionDate=dateStr;
+    const plants=getActivePlantsForBulk();
+    document.getElementById('bw-date').textContent=fmt(dateStr);
+    const list=document.getElementById('bw-plant-list');
+    list.innerHTML=plants.map(p=>`
+      <div class="bulk-plant-row" data-pid="${p.id}" data-checked="true">
+        <span style="background:var(--nav);color:#fff;font-size:9px;padding:2px 5px;border-radius:3px;font-family:'DM Mono',monospace">${p.id}</span>
+        <span class="bulk-plant-name">${p.type}</span>
+        <div onclick="bulkTogglePlant(this)" class="bulk-check on">✓</div>
+      </div>`).join('');
+    updateBulkCounts('water');
+    _openOverlay('bulk-water-overlay');
+  }catch(err){ console.error('openBulkWater error:',err); }
 }
 
 async function saveBulkWater(){
@@ -3186,21 +3199,24 @@ function bulkFertSelectType(btn){
   btn.classList.add('on'); bulkFertType=btn.dataset.ftype;
 }
 function openBulkFert(dateStr){
-  bulkActionDate=dateStr; bulkFertType=null;
-  const plants=getActivePlantsForBulk();
-  document.getElementById('bf-date').textContent=fmt(dateStr);
-  document.getElementById('bf-notes').value='';
-  document.querySelectorAll('[data-ftype]').forEach(b=>b.classList.remove('on'));
-  const list=document.getElementById('bf-plant-list');
-  list.innerHTML=plants.map(p=>`
-    <div class="bulk-plant-row" data-pid="${p.id}" data-checked="true">
-      <span style="background:var(--nav);color:#fff;font-size:9px;padding:2px 5px;border-radius:3px;font-family:'DM Mono',monospace">${p.id}</span>
-      <span class="bulk-plant-name">${p.type}</span>
-      <div onclick="bulkTogglePlant(this)" class="bulk-check on">✓</div>
-    </div>`).join('');
-  updateBulkCounts('fert');
-  document.getElementById('bulk-fert-overlay').classList.add('open');
+  try{
+    bulkActionDate=dateStr; bulkFertType=null;
+    const plants=getActivePlantsForBulk();
+    document.getElementById('bf-date').textContent=fmt(dateStr);
+    document.getElementById('bf-notes').value='';
+    document.querySelectorAll('[data-ftype]').forEach(b=>b.classList.remove('on'));
+    const list=document.getElementById('bf-plant-list');
+    list.innerHTML=plants.map(p=>`
+      <div class="bulk-plant-row" data-pid="${p.id}" data-checked="true">
+        <span style="background:var(--nav);color:#fff;font-size:9px;padding:2px 5px;border-radius:3px;font-family:'DM Mono',monospace">${p.id}</span>
+        <span class="bulk-plant-name">${p.type}</span>
+        <div onclick="bulkTogglePlant(this)" class="bulk-check on">✓</div>
+      </div>`).join('');
+    updateBulkCounts('fert');
+    _openOverlay('bulk-fert-overlay');
+  }catch(err){ console.error('openBulkFert error:',err); }
 }
+
 async function saveBulkFert(){
   const date=bulkActionDate;
   const notes=document.getElementById('bf-notes')?.value.trim()||null;
@@ -3221,26 +3237,28 @@ async function saveBulkFert(){
 
 // ── Bulk Harvest ──────────────────────────────────────────────────────────────
 function openBulkHarvest(dateStr){
-  bulkActionDate=dateStr;
-  const plants=getActivePlantsForBulk();
-  document.getElementById('bh-date').textContent=fmt(dateStr);
-  const list=document.getElementById('bh-plant-list');
-  list.innerHTML=plants.map(p=>`
-    <div class="bulk-plant-row" data-pid="${p.id}" style="flex-wrap:wrap;gap:6px">
-      <span style="background:var(--nav);color:#fff;font-size:9px;padding:2px 5px;border-radius:3px;font-family:'DM Mono',monospace;flex-shrink:0">${p.id}</span>
-      <span class="bulk-plant-name">${p.type}</span>
-      <div class="bulk-harvest-inputs">
-        <input type="number" min="0" placeholder="ct" class="bh-count" style="width:52px;border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:11px;text-align:center;background:var(--fbg);color:inherit"/>
-        <span class="bulk-unit">ct</span>
-        <input type="number" min="0" step="0.1" placeholder="${weightUnit}" class="bh-weight" style="width:60px;border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:11px;text-align:center;background:var(--fbg);color:inherit"/>
-        <span class="bulk-unit">${weightUnit}</span>
-        <span style="font-size:14px;color:#DDD;cursor:pointer;letter-spacing:1px" class="bh-stars" data-rating="0"
-          onclick="setBulkStar(this,event)" title="Quality">★★★★★</span>
-        <button onclick="clearBulkStar(this)" style="background:none;border:none;font-size:10px;color:#AAA;cursor:pointer;padding:0 2px;text-decoration:underline">✕</button>
-        <input type="hidden" class="bh-quality" value="0"/>
-      </div>
-    </div>`).join('');
-  document.getElementById('bulk-harvest-overlay').classList.add('open');
+  try{
+    bulkActionDate=dateStr;
+    const plants=getActivePlantsForBulk();
+    document.getElementById('bh-date').textContent=fmt(dateStr);
+    const list=document.getElementById('bh-plant-list');
+    list.innerHTML=plants.map(p=>`
+      <div class="bulk-plant-row" data-pid="${p.id}" style="flex-wrap:wrap;gap:6px">
+        <span style="background:var(--nav);color:#fff;font-size:9px;padding:2px 5px;border-radius:3px;font-family:'DM Mono',monospace;flex-shrink:0">${p.id}</span>
+        <span class="bulk-plant-name">${p.type}</span>
+        <div class="bulk-harvest-inputs">
+          <input type="number" min="0" placeholder="ct" class="bh-count" style="width:52px;border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:11px;text-align:center;background:var(--fbg);color:inherit"/>
+          <span class="bulk-unit">ct</span>
+          <input type="number" min="0" step="0.1" placeholder="${weightUnit}" class="bh-weight" style="width:60px;border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:11px;text-align:center;background:var(--fbg);color:inherit"/>
+          <span class="bulk-unit">${weightUnit}</span>
+          <span style="font-size:14px;color:#DDD;cursor:pointer;letter-spacing:1px" class="bh-stars" data-rating="0"
+            onclick="setBulkStar(this,event)" title="Quality">★★★★★</span>
+          <button onclick="clearBulkStar(this)" style="background:none;border:none;font-size:10px;color:#AAA;cursor:pointer;padding:0 2px;text-decoration:underline">✕</button>
+          <input type="hidden" class="bh-quality" value="0"/>
+        </div>
+      </div>`).join('');
+    _openOverlay('bulk-harvest-overlay');
+  }catch(err){ console.error('openBulkHarvest error:',err); }
 }
 async function saveBulkHarvest(){
   const date=bulkActionDate;
@@ -3316,8 +3334,9 @@ function moonPhaseEmoji(date){
 let bulkHealthType = null;
 
 function openBulkHealth(dateStr){
-  bulkActionDate=dateStr;
-  bulkHealthType=null;
+  try{
+    bulkActionDate=dateStr;
+    bulkHealthType=null;
   const plants=getActivePlantsForBulk();
   document.getElementById('bhe-date').textContent=fmt(dateStr);
   document.getElementById('bhe-notes').value='';
@@ -3330,7 +3349,8 @@ function openBulkHealth(dateStr){
       <div class="bulk-chk on" onclick="bulkToggleRow(this,'health')" aria-label="toggle">✓</div>
     </div>`).join('');
   updateBulkCounts('health');
-  document.getElementById('bulk-health-overlay').classList.add('open');
+    _openOverlay('bulk-health-overlay');
+  }catch(err){ console.error('openBulkHealth error:',err); }
 }
 
 function bulkHealthSelectType(btn){
