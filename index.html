@@ -432,6 +432,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .bulk-plant-row{display:flex;align-items:center;gap:10px;padding:7px 0;
     border-bottom:1px solid var(--border)}
   .bulk-plant-row:last-child{border-bottom:none}
+  .bulk-check{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    font-size:11px;color:transparent;flex-shrink:0;transition:all .12s;margin-left:auto}
+  .bulk-check.on{background:var(--nav);border-color:var(--nav);color:#fff}
   .bulk-chk{width:20px;height:20px;border-radius:50%;border:1.5px solid #888;
     display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
     font-size:11px;color:transparent;transition:all .12s}
@@ -3183,16 +3187,37 @@ function openBulkWater(dateStr){
 async function saveBulkWater(){
   const date=bulkActionDate;
   const rows=document.querySelectorAll('#bw-plant-list .bulk-plant-row');
+  const saved=[];
   for(const row of rows){
     if(row.dataset.checked!=='true') continue;
     const pid=row.dataset.pid;
     const plant=PLANTS.find(p=>p.id===pid); if(!plant||!plant._dbId) continue;
+    // Save previous state for undo
+    const {data:prev}=await supa.from('daily_logs').select('*').eq('plant_id',plant._dbId).eq('log_date',date).maybeSingle();
     await supa.from('daily_logs').upsert(
       withUser({plant_id:plant._dbId,log_date:date,watered:true,fertilized:false}),
       {onConflict:'plant_id,log_date',ignoreDuplicates:false});
     const key=`${pid}|${date}`;
     if(!DAILY_LOGS[key]) DAILY_LOGS[key]={watered:false,fertilizer:null,harvest:0,health:false};
     DAILY_LOGS[key].watered=true;
+    saved.push({plant,prev,key});
+  }
+  if(saved.length){
+    pushUndo({
+      description:`Water ${saved.length} plant${saved.length!==1?'s':''} on ${fmt(date)}`,
+      undo:async()=>{
+        for(const{plant,prev,key}of saved){
+          if(prev) await supa.from('daily_logs').update({watered:false}).eq('id',prev.id);
+          else await supa.from('daily_logs').delete().eq('plant_id',plant._dbId).eq('log_date',date);
+          if(DAILY_LOGS[key]) DAILY_LOGS[key].watered=prev?.watered||false;
+        }
+        render();
+      },
+      redo:async()=>{ for(const{plant,key}of saved){
+        await supa.from('daily_logs').upsert(withUser({plant_id:plant._dbId,log_date:date,watered:true,fertilized:false}),{onConflict:'plant_id,log_date'});
+        if(DAILY_LOGS[key]) DAILY_LOGS[key].watered=true;
+      } render(); }
+    });
   }
   closeBulkPanel(); render();
 }
@@ -3226,16 +3251,36 @@ async function saveBulkFert(){
   const date=bulkActionDate;
   const notes=document.getElementById('bf-notes')?.value.trim()||null;
   const rows=document.querySelectorAll('#bf-plant-list .bulk-plant-row');
+  const saved=[];
   for(const row of rows){
     if(row.dataset.checked!=='true') continue;
     const pid=row.dataset.pid;
     const plant=PLANTS.find(p=>p.id===pid); if(!plant||!plant._dbId) continue;
+    const {data:prev}=await supa.from('daily_logs').select('*').eq('plant_id',plant._dbId).eq('log_date',date).maybeSingle();
     await supa.from('daily_logs').upsert(
       withUser({plant_id:plant._dbId,log_date:date,fertilized:true,fertilizer_type:bulkFertType||null,fertilizer_notes:notes}),
       {onConflict:'plant_id,log_date',ignoreDuplicates:false});
     const key=`${pid}|${date}`;
     if(!DAILY_LOGS[key]) DAILY_LOGS[key]={watered:false,fertilizer:null,harvest:0,health:false};
     DAILY_LOGS[key].fertilizer=bulkFertType||'other';
+    saved.push({plant,prev,key});
+  }
+  if(saved.length){
+    pushUndo({
+      description:`Fertilize ${saved.length} plant${saved.length!==1?'s':''} on ${fmt(date)}`,
+      undo:async()=>{
+        for(const{plant,prev,key}of saved){
+          if(prev) await supa.from('daily_logs').update({fertilized:false,fertilizer_type:null,fertilizer_notes:null}).eq('id',prev.id);
+          else await supa.from('daily_logs').delete().eq('plant_id',plant._dbId).eq('log_date',date);
+          if(DAILY_LOGS[key]) DAILY_LOGS[key].fertilizer=prev?.fertilizer_type||null;
+        }
+        render();
+      },
+      redo:async()=>{ for(const{plant,key}of saved){
+        await supa.from('daily_logs').upsert(withUser({plant_id:plant._dbId,log_date:date,fertilized:true,fertilizer_type:bulkFertType||null,fertilizer_notes:notes}),{onConflict:'plant_id,log_date'});
+        if(DAILY_LOGS[key]) DAILY_LOGS[key].fertilizer=bulkFertType||'other';
+      } render(); }
+    });
   }
   closeBulkPanel(); render();
 }
@@ -3268,6 +3313,7 @@ function openBulkHarvest(dateStr){
 async function saveBulkHarvest(){
   const date=bulkActionDate;
   const rows=document.querySelectorAll('#bh-plant-list .bulk-plant-row');
+  const inserted=[];
   for(const row of rows){
     const pid=row.dataset.pid;
     const qty=parseInt(row.querySelector('.bh-count').value)||0;
@@ -3275,11 +3321,33 @@ async function saveBulkHarvest(){
     const quality=parseInt(row.querySelector('.bh-quality').value)||0;
     if(!qty&&!wt) continue;
     const plant=PLANTS.find(p=>p.id===pid); if(!plant||!plant._dbId) continue;
-    await supa.from('harvest_logs').insert(withUser({plant_id:plant._dbId,harvest_date:date,quantity:qty,weight_value:wt,weight_unit:weightUnit,quality_rating:quality||null}));
+    const {data:ins}=await supa.from('harvest_logs').insert(
+      withUser({plant_id:plant._dbId,harvest_date:date,quantity:qty,weight_value:wt,weight_unit:weightUnit,quality_rating:quality||null})
+    ).select('id').single();
     const key=`${pid}|${date}`;
     if(!DAILY_LOGS[key]) DAILY_LOGS[key]={watered:false,fertilizer:null,harvest:0,health:false};
     DAILY_LOGS[key].harvest=(DAILY_LOGS[key].harvest||0)+qty;
     const lp=PLANTS.find(p=>p.id===pid); if(lp) lp.totalHarvest=(lp.totalHarvest||0)+qty;
+    if(ins?.id) inserted.push({id:ins.id,plant,qty,key});
+  }
+  if(inserted.length){
+    pushUndo({
+      description:`Harvest ${inserted.length} plant${inserted.length!==1?'s':''} on ${fmt(date)}`,
+      undo:async()=>{
+        for(const{id,plant,qty,key}of inserted){
+          await supa.from('harvest_logs').delete().eq('id',id);
+          if(DAILY_LOGS[key]) DAILY_LOGS[key].harvest=Math.max(0,(DAILY_LOGS[key].harvest||0)-qty);
+          const lp=PLANTS.find(p=>p._dbId===plant._dbId); if(lp) lp.totalHarvest=Math.max(0,(lp.totalHarvest||0)-qty);
+        }
+        render();
+      },
+      redo:async()=>{ for(const{plant,key}of inserted){
+        const row=inserted.find(i=>i.plant._dbId===plant._dbId);
+        if(!row) continue;
+        const {data:re}=await supa.from('harvest_logs').insert(withUser({plant_id:plant._dbId,harvest_date:date,quantity:row.qty,weight_unit:weightUnit})).select('id').single();
+        if(re?.id){ row.id=re.id; if(DAILY_LOGS[key]) DAILY_LOGS[key].harvest=(DAILY_LOGS[key].harvest||0)+row.qty; }
+      } render(); }
+    });
   }
   closeBulkPanel(); render();
 }
@@ -3290,31 +3358,40 @@ function bulkTogglePlant(checkEl){
   const on=row.dataset.checked==='true';
   row.dataset.checked=on?'false':'true';
   checkEl.classList.toggle('on',!on);
-  checkEl.textContent=on?'':'✓';
+  checkEl.textContent='✓'; // always show checkmark character; CSS controls visibility via color
   const listId=row.closest('[id$="-plant-list"]')?.id||'';
   if(listId==='bw-plant-list') updateBulkCounts('water');
   else if(listId==='bf-plant-list') updateBulkCounts('fert');
+  else if(listId==='bhe-plant-list') updateBulkCounts('health');
 }
 function bulkToggleAll(type){
   const listId=type==='water'?'bw-plant-list':type==='fert'?'bf-plant-list':'bhe-plant-list';
-  const allRows=document.querySelectorAll(`#${listId} .bulk-plant-row`);
-  const allOn=[...allRows].every(r=>r.dataset.checked==='true');
+  const allRows=[...document.querySelectorAll(`#${listId} .bulk-plant-row`)];
+  const allOn=allRows.every(r=>r.dataset.checked==='true');
   allRows.forEach(r=>{
     r.dataset.checked=allOn?'false':'true';
     const c=r.querySelector('.bulk-check');
-    if(c){ c.classList.toggle('on',!allOn); c.textContent=allOn?'':'✓'; }
+    if(c){ c.classList.toggle('on',!allOn); c.textContent='✓'; }
   });
   updateBulkCounts(type);
 }
 function updateBulkCounts(type){
+  const total=PLANTS.length;
   if(type==='water'){
     const n=[...document.querySelectorAll('#bw-plant-list .bulk-plant-row')].filter(r=>r.dataset.checked==='true').length;
-    const lbl=document.getElementById('bw-count-lbl'); if(lbl) lbl.textContent=`${n} of ${PLANTS.length} plants selected`;
+    const lbl=document.getElementById('bw-count-lbl'); if(lbl) lbl.textContent=`${n} of ${total} plants selected`;
     const btn=document.getElementById('bw-save-btn'); if(btn) btn.textContent=`Save watering — ${n} plant${n!==1?'s':''}`;
+    const all=document.getElementById('bw-sel-all'); if(all) all.textContent=n===total?'Deselect all':'Select all';
   } else if(type==='fert'){
     const n=[...document.querySelectorAll('#bf-plant-list .bulk-plant-row')].filter(r=>r.dataset.checked==='true').length;
-    const lbl=document.getElementById('bf-count-lbl'); if(lbl) lbl.textContent=`${n} of ${PLANTS.length} plants selected`;
+    const lbl=document.getElementById('bf-count-lbl'); if(lbl) lbl.textContent=`${n} of ${total} plants selected`;
     const btn=document.getElementById('bf-save-btn'); if(btn) btn.textContent=`Save fertilizing — ${n} plant${n!==1?'s':''}`;
+    const all=document.getElementById('bf-sel-all'); if(all) all.textContent=n===total?'Deselect all':'Select all';
+  } else if(type==='health'){
+    const n=[...document.querySelectorAll('#bhe-plant-list .bulk-plant-row')].filter(r=>r.dataset.checked==='true').length;
+    const lbl=document.getElementById('bhe-count-lbl'); if(lbl) lbl.textContent=`${n} of ${total} plants selected`;
+    const btn=document.getElementById('bhe-save-btn'); if(btn) btn.textContent=`Save health event — ${n} plant${n!==1?'s':''}`;
+    const all=document.getElementById('bhe-sel-all'); if(all) all.textContent=n===total?'Deselect all':'Select all';
   }
 }
 
