@@ -72,7 +72,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   #toolbar{background:var(--card);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;align-items:center;gap:10px;flex-wrap:nowrap;flex-shrink:0;position:relative;z-index:50}
   #zoom-group{display:flex;background:var(--fbg);border-radius:7px;padding:3px;gap:2px}
   .zoom-btn{background:transparent;color:var(--text-secondary);border:none;padding:4px 12px;border-radius:5px;font-size:11px;text-transform:capitalize}
-  .zoom-btn.active{background:var(--nav);color:#fff;font-weight:600}
+  .zoom-btn.active{background:var(--nav);color:#fff;font-weight:700}
   .tbtn{background:var(--fbg);color:var(--text-body);border:1px solid var(--border);padding:5px 12px;border-radius:6px;font-size:11px}
   .tbtn:hover{background:var(--border)}
   .hist-btn:disabled{opacity:.4;cursor:not-allowed}
@@ -355,6 +355,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     border:none;border-radius:50%;width:22px;height:22px;font-size:11px;cursor:pointer;
     display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .12s}
   .plog-photo-item:hover .plog-photo-del{opacity:1}
+  /* ── Plant detail action buttons ── */
+  .pd-action-btn{background:var(--fbg);color:var(--text-body);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:500}
+  .pd-action-btn:hover{background:var(--border)}
+  .pd-action-btn-primary{background:var(--nav);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:600}
+  .pd-action-btn-primary:hover{opacity:.85}
+  .pd-action-btn-danger{background:#FEEDE8;color:#993C1D;border:1px solid #F5C0B0;border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:500}
+  .pd-action-btn-danger:hover{background:#FDDDD5;border-color:#E5A090}
   .plog-del-group{background:#FEEDE8;border:1px solid #F5C0B0;border-radius:4px;padding:2px 8px;font-size:10px;
     color:#B33A1F;cursor:pointer;font-family:inherit}
   .notes-entry{background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden}
@@ -566,8 +573,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .ph-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:calc(100vh - 52px);gap:14px;color:#888}
   .ph-icon{font-size:52px}
   .ph-title{font-family:'Fraunces',serif;font-size:22px;color:var(--text-body);font-weight:600}
+  .pd-plant-title{color:var(--text-body)}
   .ph-desc{font-size:12px;max-width:340px;text-align:center;line-height:1.6}
-  .ph-phase{font-size:11px;color:#B0A89E;margin-top:4px}
+  .ph-phase{font-size:11px;color:var(--text-secondary);margin-top:4px}
 
   /* ── Plants Catalog ── */
   #view-plants,#view-log{flex-direction:column;height:calc(100vh - 104px);overflow:hidden}
@@ -648,13 +656,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   /* ── Dark mode overrides ── */
   body.dark #toolbar{background:var(--card);border-bottom-color:var(--border)}
   body.dark #zoom-group{background:var(--fbg)}
-  /* Today button base style — green with nav color */
-  #today-btn{font-weight:600;color:var(--nav)}
+  /* Today button — same class as Back/Forward (.tbtn), just bold */
+  #today-btn{font-weight:600}
   body.dark .zoom-btn{color:var(--text-secondary)}
-  body.dark .zoom-btn.active{background:#4FA66A;color:#1A1E1A;font-weight:700}
+  body.dark .zoom-btn.active{background:#4FA66A;color:#fff;font-weight:700}
   body.dark .tbtn,body.dark #harvest-btn{background:var(--fbg);color:var(--text-body);border-color:var(--border)}
   body.dark .tbtn:hover{background:var(--border)}
-  /* Today button — bright green in dark mode */
+  /* Today button in dark — bright green so it stands out from Back/Forward */
   body.dark #today-btn{background:#4FA66A;color:#1A1E1A;border-color:#4FA66A;font-weight:700}
   body.dark #today-btn:hover{background:#5CB87A;border-color:#5CB87A}
   /* Plant name text in timeline left column */
@@ -692,10 +700,19 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   body.dark .plog-del-group:hover{background:var(--border)}
   /* Delete/danger button in dark: subtle red treatment */
   body.dark .plog-del-group:not(.note-edit-btn){color:var(--danger);border-color:var(--danger);background:rgba(217,107,107,.08)}
+  /* Plant detail action buttons — dark mode */
+  body.dark .pd-action-btn{background:var(--fbg);color:var(--text-body);border-color:var(--border)}
+  body.dark .pd-action-btn:hover{background:var(--border)}
+  body.dark .pd-action-btn-primary{background:#4FA66A;color:#1A1E1A;border:none}
+  body.dark .pd-action-btn-primary:hover{background:#5CB87A}
+  body.dark .pd-action-btn-danger{background:rgba(217,107,107,.1);color:var(--danger);border-color:var(--danger)}
+  body.dark .pd-action-btn-danger:hover{background:rgba(217,107,107,.2)}
   /* Plant log detail tabs */
   body.dark .pd-tab{color:var(--text-secondary)}
   body.dark .pd-tab:hover{color:#4FA66A;background:var(--fbg)}
   body.dark .pd-tab.active{color:#4FA66A;border-bottom-color:#4FA66A;font-weight:700}
+  /* Settings dropdown — already uses var(--card)/var(--fbg) but reinforce */
+  body.dark #settings-dd-menu{background:var(--card);border-color:var(--border)}
   body.dark .note-edit-btn{background:var(--fbg);color:var(--accent);border-color:var(--accent)}
   /* catalog table */
   body.dark .ctable th{background:var(--fbg);color:var(--text-secondary)}
@@ -744,6 +761,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   /* misc */
   body.dark .plog-upload-zone{border-color:var(--border);color:var(--text-secondary)}
   body.dark .ph-title{color:var(--text-body)}
+  body.dark .pd-plant-title{color:#E7ECE7}
   body.dark .ph-phase{color:var(--text-secondary)}
   body.dark .pd-harvest-table tr:nth-child(even) td{background:var(--fbg)}
   body.dark .log-plant-list{background:var(--bg)}
@@ -873,27 +891,27 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
                padding:4px 9px;border-radius:5px;cursor:pointer;font-size:13px">⚙️</button>
       <div id="settings-dd-menu" style="display:none;position:fixed;background:var(--card);border:0.5px solid var(--border);
         border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.18);min-width:210px;z-index:300;padding:4px 0">
-        <div onclick="switchTab('settings');closeSettingsDD()" style="padding:9px 14px;font-size:11px;cursor:pointer;color:#1C3A2A;font-weight:600;display:flex;align-items:center;gap:7px;font-family:'DM Mono',monospace"
-          onmouseover="this.style.background='#F0EBE4'" onmouseout="this.style.background=''">
+        <div onclick="switchTab('settings');closeSettingsDD()" style="padding:9px 14px;font-size:11px;cursor:pointer;color:var(--text-body);font-weight:600;display:flex;align-items:center;gap:7px;font-family:'DM Mono',monospace"
+          onmouseover="this.style.background='var(--fbg)'" onmouseout="this.style.background=''">
           ⚙️ Go to Settings
         </div>
         <div style="height:0.5px;background:var(--border);margin:3px 0"></div>
-        <div style="padding:5px 14px 2px;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Timeline display</div>
-        <div onclick="toggleHarvest()" id="harvest-dd-item" style="padding:7px 14px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace"
-          onmouseover="this.style.background='#F0EBE4'" onmouseout="this.style.background=''">
+        <div style="padding:5px 14px 2px;font-size:9px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;font-weight:600">Timeline display</div>
+        <div onclick="toggleHarvest()" id="harvest-dd-item" style="padding:7px 14px;font-size:11px;cursor:pointer;color:var(--text-body);display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace"
+          onmouseover="this.style.background='var(--fbg)'" onmouseout="this.style.background=''">
           🧺 <span>Show harvest counts</span>
           <div id="harvest-dd-toggle" style="margin-left:auto;width:28px;height:16px;border-radius:8px;background:#C4C0B8;display:flex;align-items:center;padding:2px;justify-content:flex-start;transition:background .15s">
             <div style="width:12px;height:12px;border-radius:50%;background:#fff"></div>
           </div>
         </div>
-        <div onclick="toggleIcons()" id="icons-dd-item" style="padding:7px 14px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace"
-          onmouseover="this.style.background='#F0EBE4'" onmouseout="this.style.background=''">
+        <div onclick="toggleIcons()" id="icons-dd-item" style="padding:7px 14px;font-size:11px;cursor:pointer;color:var(--text-body);display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace"
+          onmouseover="this.style.background='var(--fbg)'" onmouseout="this.style.background=''">
           💧 <span>Show activity icons</span>
           <div id="icons-dd-toggle" style="margin-left:auto;width:28px;height:16px;border-radius:8px;background:#2E7D4F;display:flex;align-items:center;padding:2px;justify-content:flex-end;transition:background .15s">
             <div style="width:12px;height:12px;border-radius:50%;background:#fff"></div>
           </div>
         </div>
-        <div style="padding:2px 14px 7px;font-size:9px;color:#888;line-height:1.4">Hiding icons compresses rows for a denser view</div>
+        <div style="padding:2px 14px 7px;font-size:9px;color:var(--text-secondary);line-height:1.4">Hiding icons compresses rows for a denser view</div>
       </div>
     </div>
   </div>
@@ -4555,15 +4573,15 @@ async function renderPlantDetailTab(tab, plant, cat){
       <div style="display:flex;gap:20px;align-items:flex-start;margin-bottom:16px">
         ${catImg}
         <div>
-          <div style="font-family:'Fraunces',serif;font-size:20px;font-weight:600;color:var(--nav);margin-bottom:4px">${plant.type}</div>
-          <div style="font-size:11px;color:#888;margin-bottom:8px">${cat.category||plant.family||""} › ${cat.subcategory||""}</div>
+          <div class="pd-plant-title" style="font-family:'Fraunces',serif;font-size:20px;font-weight:600;margin-bottom:4px">${plant.type}</div>
+          <div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px">${cat.category||plant.family||""} › ${cat.subcategory||""}</div>
           <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
-            <div><span style="font-size:10px;color:#888">Status</span><div style="font-size:12px;font-weight:600">${statusTxt}</div></div>
-            <div><span style="font-size:10px;color:#888">Total Days</span><div style="font-size:12px;font-weight:600">${days}</div></div>
-            <div><span style="font-size:10px;color:#888">Total Harvest</span><div style="font-size:12px;font-weight:600;color:#2E7D4F">${plant.totalHarvest||0}</div></div>
-            <button onclick="viewOnTimeline('${plant.id}','${plant.planted||''}')" style="margin-left:4px;background:var(--nav);color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:600">📅 View on Timeline</button>
-            <button onclick="plogArchiveToggle('${plant._dbId}')" style="background:var(--fbg);border:1px solid var(--border);color:var(--text-body);padding:5px 12px;border-radius:6px;font-size:10px;cursor:pointer;font-family:inherit">${plant.archived?'↩️ Unarchive':'📦 Archive'}</button>
-            <button onclick="plogDelete('${plant._dbId}','${plant.id}')" style="background:#FEEDE8;border:1px solid #F5C0B0;color:#B33A1F;padding:5px 12px;border-radius:6px;font-size:10px;cursor:pointer;font-family:inherit">🗑️ Delete</button>
+            <div><span style="font-size:10px;color:var(--text-secondary)">Status</span><div style="font-size:12px;font-weight:600;color:var(--text-body)">${statusTxt}</div></div>
+            <div><span style="font-size:10px;color:var(--text-secondary)">Total Days</span><div style="font-size:12px;font-weight:600;color:var(--text-body)">${days}</div></div>
+            <div><span style="font-size:10px;color:var(--text-secondary)">Total Harvest</span><div style="font-size:12px;font-weight:600;color:var(--nav-text,var(--nav))">${plant.totalHarvest||0}</div></div>
+            <button onclick="viewOnTimeline('${plant.id}','${plant.planted||''}')" class="pd-action-btn-primary">📅 View on Timeline</button>
+            <button onclick="plogArchiveToggle('${plant._dbId}')" class="pd-action-btn">${plant.archived?'↩️ Unarchive':'📦 Archive'}</button>
+            <button onclick="plogDelete('${plant._dbId}','${plant.id}')" class="pd-action-btn-danger">🗑️ Delete</button>
           </div>
         </div>
       </div>
