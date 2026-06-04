@@ -49,6 +49,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     --text-body:#A9B2A9;--text-secondary:#7E877E;
     --card:#2D342D;--accent:#5BA8D6;--danger:#D96B6B;--gold:#D5B56A;
     --nav-text:#4FA66A;
+    color-scheme:dark;
   }
   body{font-family:'DM Mono','Courier New',monospace;background:var(--bg);color:var(--text-body);min-height:100vh;overflow:hidden}
   button{font-family:inherit;cursor:pointer;transition:all .15s}
@@ -358,10 +359,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   /* ── Plant detail action buttons ── */
   .pd-action-btn{background:var(--fbg);color:var(--text-body);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:500}
   .pd-action-btn:hover{background:var(--border)}
-  .pd-action-btn-primary{background:var(--nav);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:600}
-  .pd-action-btn-primary:hover{opacity:.85}
-  .pd-action-btn-danger{background:#FEEDE8;color:#993C1D;border:1px solid #F5C0B0;border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:500}
-  .pd-action-btn-danger:hover{background:#FDDDD5;border-color:#E5A090}
+  .pd-action-btn-primary{background:var(--fbg);color:var(--text-body);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:500}
+  .pd-action-btn-primary:hover{background:var(--border)}
+  .pd-action-btn-danger{background:transparent;color:#993C1D;border:1px solid #D8705A;border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:500}
+  .pd-action-btn-danger:hover{background:#FEF0EC}
   .plog-del-group{background:#FEEDE8;border:1px solid #F5C0B0;border-radius:4px;padding:2px 8px;font-size:10px;
     color:#B33A1F;cursor:pointer;font-family:inherit}
   .notes-entry{background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden}
@@ -656,15 +657,12 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   /* ── Dark mode overrides ── */
   body.dark #toolbar{background:var(--card);border-bottom-color:var(--border)}
   body.dark #zoom-group{background:var(--fbg)}
-  /* Today button — same class as Back/Forward (.tbtn), just bold */
+  /* Today button — matches Back/Forward exactly in both modes */
   #today-btn{font-weight:600}
   body.dark .zoom-btn{color:var(--text-secondary)}
   body.dark .zoom-btn.active{background:#4FA66A;color:#fff;font-weight:700}
-  body.dark .tbtn,body.dark #harvest-btn{background:var(--fbg);color:var(--text-body);border-color:var(--border)}
-  body.dark .tbtn:hover{background:var(--border)}
-  /* Today button in dark — bright green so it stands out from Back/Forward */
-  body.dark #today-btn{background:#4FA66A;color:#1A1E1A;border-color:#4FA66A;font-weight:700}
-  body.dark #today-btn:hover{background:#5CB87A;border-color:#5CB87A}
+  body.dark .tbtn,body.dark #harvest-btn,body.dark #today-btn{background:var(--fbg);color:var(--text-body);border-color:var(--border)}
+  body.dark .tbtn:hover,body.dark #today-btn:hover{background:var(--border)}
   /* Plant name text in timeline left column */
   body.dark .plant-type-name{color:var(--text-body)}
   body.dark .dd-menu{background:var(--card);border-color:var(--border)}
@@ -701,19 +699,17 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   /* Delete/danger button in dark: subtle red treatment */
   body.dark .plog-del-group:not(.note-edit-btn){color:var(--danger);border-color:var(--danger);background:rgba(217,107,107,.08)}
   /* Plant detail action buttons — dark mode */
-  body.dark .pd-action-btn{background:var(--fbg);color:var(--text-body);border-color:var(--border)}
-  body.dark .pd-action-btn:hover{background:var(--border)}
-  body.dark .pd-action-btn-primary{background:#4FA66A;color:#1A1E1A;border:none}
-  body.dark .pd-action-btn-primary:hover{background:#5CB87A}
-  body.dark .pd-action-btn-danger{background:rgba(217,107,107,.1);color:var(--danger);border-color:var(--danger)}
-  body.dark .pd-action-btn-danger:hover{background:rgba(217,107,107,.2)}
+  body.dark .pd-action-btn,body.dark .pd-action-btn-primary{background:var(--fbg);color:var(--text-body);border-color:var(--border)}
+  body.dark .pd-action-btn:hover,body.dark .pd-action-btn-primary:hover{background:var(--border)}
+  body.dark .pd-action-btn-danger{background:transparent;color:var(--danger);border-color:var(--danger)}
+  body.dark .pd-action-btn-danger:hover{background:rgba(217,107,107,.12)}
   /* Plant log detail tabs */
   body.dark .pd-tab{color:var(--text-secondary)}
   body.dark .pd-tab:hover{color:#4FA66A;background:var(--fbg)}
   body.dark .pd-tab.active{color:#4FA66A;border-bottom-color:#4FA66A;font-weight:700}
   /* Settings dropdown — already uses var(--card)/var(--fbg) but reinforce */
   body.dark #settings-dd-menu{background:var(--card);border-color:var(--border)}
-  body.dark .note-edit-btn{background:var(--fbg);color:var(--accent);border-color:var(--accent)}
+  body.dark .note-edit-btn{background:var(--fbg);color:var(--text-body);border-color:var(--border)}
   /* catalog table */
   body.dark .ctable th{background:var(--fbg);color:var(--text-secondary)}
   body.dark .ctable td{background:var(--card);color:var(--text-body)}
@@ -873,14 +869,14 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       <button id="new-plant-btn" onclick="toggleNewPlantMenu(event)">+ New Plant ▾</button>
       <div id="new-plant-menu" style="display:none;position:fixed;background:var(--card);border:1px solid var(--border);
         border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.18);min-width:220px;z-index:300;padding:5px 0">
-        <div onclick="newPlantToDatabase()" style="padding:9px 16px;font-size:11px;cursor:pointer;color:#333;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px"
-          onmouseover="this.style.background='#F0EBE4'" onmouseout="this.style.background=''">
-          🌿 <div><div style="font-weight:600">Add to Plant Database</div><div style="font-size:9px;color:#888;margin-top:1px">Add a new plant variety to the catalog</div></div>
+        <div onclick="newPlantToDatabase()" style="padding:9px 16px;font-size:11px;cursor:pointer;color:var(--text-body);font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px"
+          onmouseover="this.style.background='var(--fbg)'" onmouseout="this.style.background=''">
+          🌿 <div><div style="font-weight:600">Add to Plant Database</div><div style="font-size:9px;color:var(--text-secondary);margin-top:1px">Add a new plant variety to the catalog</div></div>
         </div>
         <div style="height:1px;background:var(--border);margin:3px 0"></div>
-        <div onclick="newPlantToGarden()" style="padding:9px 16px;font-size:11px;cursor:pointer;color:#333;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px"
-          onmouseover="this.style.background='#F0EBE4'" onmouseout="this.style.background=''">
-          🌱 <div><div style="font-weight:600">Plant in My Garden</div><div style="font-size:9px;color:#888;margin-top:1px">Add an existing variety to your timeline</div></div>
+        <div onclick="newPlantToGarden()" style="padding:9px 16px;font-size:11px;cursor:pointer;color:var(--text-body);font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px"
+          onmouseover="this.style.background='var(--fbg)'" onmouseout="this.style.background=''">
+          🌱 <div><div style="font-weight:600">Plant in My Garden</div><div style="font-size:9px;color:var(--text-secondary);margin-top:1px">Add an existing variety to your timeline</div></div>
         </div>
       </div>
     </div>
@@ -4431,10 +4427,12 @@ function buildLifecycleSection(plant){
     const tPx=px(TODAY.getTime());
     const todayInRange=tPx>barStart&&tPx<barEnd;
     if(todayInRange){
-      bars+=`<line x1="${tPx}" y1="0" x2="${tPx}" y2="${barH}" stroke="#E05C30" stroke-width="1.5" opacity=".7"/>
-        <rect x="${tPx-17}" y="-18" width="34" height="14" rx="3" fill="#fff" stroke="#E05C30" stroke-width="1.5"/>
-        <text x="${tPx}" y="-7" text-anchor="middle" font-size="8" fill="#E05C30" font-family="DM Mono,monospace" font-weight="700">TODAY</text>
-        <polygon points="${tPx-4},-4 ${tPx+4},-4 ${tPx},2" fill="#E05C30"/>`;
+      const isDark=document.body.classList.contains('dark');
+      bars+=`<line x1="${tPx}" y1="0" x2="${tPx}" y2="${barH}" stroke="${isDark?'#D96B6B':'#E05C30'}" stroke-width="1.5" opacity=".7"/>
+        <rect x="${tPx-17}" y="-18" width="34" height="14" rx="3" fill="${isDark?'#2D342D':'#fff'}" stroke="${isDark?'#D96B6B':'#E05C30'}" stroke-width="1.5"/>
+        <text x="${tPx}" y="-7" text-anchor="middle" font-size="8" fill="${isDark?'#D96B6B':'#E05C30'}" font-family="DM Mono,monospace" font-weight="700">TODAY</text>
+        <polygon points="${tPx-4},-4 ${tPx+4},-4 ${tPx},2" fill="${isDark?'#D96B6B':'#E05C30'}"/>`;
+
     }
     const topPad=todayInRange?22:4;
     const botPad=8;
@@ -4449,20 +4447,21 @@ function buildLifecycleSection(plant){
       return `<div style="display:flex;align-items:flex-start;gap:7px;padding:0 2px">
         <div onclick="${canNA?`togglePhaseNA('${plant._dbId}','${plant.id}','${p.key}',false)`:''}"
           title="Click to re-enable this phase"
-          style="width:18px;height:18px;border-radius:50%;background:#E0DDD8;color:#AAA;border:1px solid #C8C2BA;
+          style="width:18px;height:18px;border-radius:50%;background:var(--fbg);color:var(--text-secondary);border:1px solid var(--border);
                  font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;
                  flex-shrink:0;margin-top:10px;${canNA?'cursor:pointer;':''}"
         >⊘</div>
         <div style="min-width:0;flex:1;opacity:.45">
-          <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em;font-weight:600;line-height:1.3;margin-bottom:4px">${p.label}</div>
-          <div style="font-size:11px;color:#AAA;font-style:italic;font-family:'DM Mono',monospace">N/A</div>
+          <div style="font-size:9px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;font-weight:600;line-height:1.3;margin-bottom:4px">${p.label}</div>
+          <div style="font-size:11px;color:var(--text-secondary);font-style:italic;font-family:'DM Mono',monospace">N/A</div>
         </div>
       </div>`;
     }
 
-    const badgeBg=p.isProj?"#ECEAE6":"#F0EFEB";
-    const badgeClr=p.isProj?"#888":"#444";
-    const badgeBorder=p.isProj?"1px solid #C8C2BA":"1.5px solid #999";
+    const isDkMode=document.body.classList.contains('dark');
+    const badgeBg=isDkMode?(p.isProj?'#303830':'rgba(55,66,55,0.95)'):(p.isProj?'#ECEAE6':'#F0EFEB');
+    const badgeClr=isDkMode?(p.isProj?'#6E7E6E':'#C0CAC0'):(p.isProj?'#888':'#444');
+    const badgeBorder=isDkMode?(p.isProj?'1px solid #404840':'1.5px solid #5A625A'):(p.isProj?'1px solid #C8C2BA':'1.5px solid #999');
     const inputStyle=`border:none;border-bottom:1px solid ${p.isProj?"#DDD":"#AAA"};background:transparent;`+
       `font-size:11px;color:${p.isProj?"var(--text-secondary)":"var(--text-body)"};font-weight:${p.isProj?400:600};`+
       `font-family:'DM Mono',monospace;width:100%;padding:2px 0;cursor:pointer;`+
