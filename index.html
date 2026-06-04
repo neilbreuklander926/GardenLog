@@ -71,10 +71,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   /* ── Toolbar ── */
   #toolbar{background:var(--card);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;align-items:center;gap:10px;flex-wrap:nowrap;flex-shrink:0;position:relative;z-index:50}
   #zoom-group{display:flex;background:var(--fbg);border-radius:7px;padding:3px;gap:2px}
-  .zoom-btn{background:transparent;color:#666;border:none;padding:4px 12px;border-radius:5px;font-size:11px;text-transform:capitalize}
+  .zoom-btn{background:transparent;color:var(--text-secondary);border:none;padding:4px 12px;border-radius:5px;font-size:11px;text-transform:capitalize}
   .zoom-btn.active{background:var(--nav);color:#fff;font-weight:600}
   .tbtn{background:var(--fbg);color:var(--text-body);border:1px solid var(--border);padding:5px 12px;border-radius:6px;font-size:11px}
-  .tbtn:hover{background:#E4DDD5}
+  .tbtn:hover{background:var(--border)}
   .hist-btn:disabled{opacity:.4;cursor:not-allowed}
   .hist-btn:disabled:hover{background:var(--fbg)}
   #harvest-btn{background:var(--fbg);color:var(--text-body);border:1px solid var(--border);padding:5px 12px;border-radius:6px;font-size:11px}
@@ -139,7 +139,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .g-label[title]:hover{filter:brightness(.96)}
   .plant-id-badge{background:var(--nav);color:#fff;font-size:10px;font-weight:700;
     padding:2px 6px;border-radius:4px;min-width:28px;text-align:center;letter-spacing:.03em;flex-shrink:0}
-  .plant-type-name{font-size:12px;color:#222;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+  .plant-type-name{font-size:12px;color:var(--text-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
   .g-label:hover{filter:brightness(.97)}
 
   /* ── Date panel (sticky, slides in between label and timeline) ── */
@@ -616,7 +616,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .log-date-inp{border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text-body);background:var(--card)}
   .log-date-inp:focus{outline:none;border-color:var(--nav)}
   .log-today-btn{background:var(--fbg);border:1px solid var(--border);color:var(--text-body);padding:6px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit}
-  .log-today-btn:hover{background:#E4DDD5}
+  .log-today-btn:hover{background:var(--border)}
   .log-water-all-btn{background:#3B7AC0;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit}
   .log-water-all-btn:hover{background:#2E65A8}
   .log-status{font-size:10px;color:#2E7D4F;margin-left:auto;font-style:italic}
@@ -647,7 +647,17 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   /* ── Dark mode overrides ── */
   body.dark #toolbar{background:var(--card);border-bottom-color:var(--border)}
   body.dark #zoom-group{background:var(--fbg)}
+  /* Today button base style — green with nav color */
+  #today-btn{font-weight:600;color:var(--nav)}
+  body.dark .zoom-btn{color:var(--text-secondary)}
+  body.dark .zoom-btn.active{background:#4FA66A;color:#1A1E1A;font-weight:700}
   body.dark .tbtn,body.dark #harvest-btn{background:var(--fbg);color:var(--text-body);border-color:var(--border)}
+  body.dark .tbtn:hover{background:var(--border)}
+  /* Today button — bright green in dark mode */
+  body.dark #today-btn{background:#4FA66A;color:#1A1E1A;border-color:#4FA66A;font-weight:700}
+  body.dark #today-btn:hover{background:#5CB87A;border-color:#5CB87A}
+  /* Plant name text in timeline left column */
+  body.dark .plant-type-name{color:var(--text-body)}
   body.dark .dd-menu{background:var(--card);border-color:var(--border)}
   body.dark .dd-item{color:var(--text-body)}
   body.dark .g-label{background:var(--card)}
@@ -670,7 +680,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   body.dark .plog-family-hdr{background:var(--fbg);color:var(--nav-text,#4FA66A);border-color:var(--border)}
   body.dark .plog-name{color:var(--text-body)}
   body.dark .plog-date-group{border-color:var(--border)}
-  body.dark .plog-date-lbl{color:var(--accent)}
+  body.dark .plog-date-lbl{color:#4FA66A}
   body.dark .plog-date-hdr{border-color:var(--border)}
   body.dark .plog-date-notes{color:var(--text-secondary)}
   body.dark .log-saved-badge{background:var(--fbg);color:var(--accent);border-color:var(--accent)}
@@ -894,7 +904,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       </div>
       <button class="tbtn" onclick="navigate(-1)">◀ Back</button>
       <button class="tbtn" onclick="navigate(1)">Forward ▶</button>
-      <button class="tbtn" onclick="goToToday()" style="font-weight:600;color:var(--nav)">Today</button>
+      <button class="tbtn" id="today-btn" onclick="goToToday()">Today</button>
 
       <!-- Secondary: legend + undo/redo + scale — pushed to far right -->
       <div style="margin-left:auto;display:flex;align-items:center;gap:4px;border-left:1px solid rgba(255,255,255,.15);padding-left:10px">
