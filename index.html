@@ -136,11 +136,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     padding:0 4px 0 14px;gap:6px;
     transition:background .1s;
   }
-  .g-label[title]:hover{filter:brightness(.96)}
+  .g-label[title]:hover{filter:none;background:color-mix(in srgb,var(--border) 50%,var(--card)) !important}
   .plant-id-badge{background:var(--nav);color:#fff;font-size:10px;font-weight:700;
     padding:2px 6px;border-radius:4px;min-width:28px;text-align:center;letter-spacing:.03em;flex-shrink:0}
   .plant-type-name{font-size:12px;color:var(--text-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
-  .g-label:hover{filter:brightness(.97)}
+  .g-label:hover{filter:none;background:color-mix(in srgb,var(--border) 50%,var(--card)) !important}
 
   /* ── Date panel (sticky, slides in between label and timeline) ── */
   .g-dates{
@@ -355,7 +355,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     border:none;border-radius:50%;width:22px;height:22px;font-size:11px;cursor:pointer;
     display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .12s}
   .plog-photo-item:hover .plog-photo-del{opacity:1}
-  .plog-del-group{background:#FEEDE8;border:none;border-radius:4px;padding:2px 8px;font-size:10px;
+  .plog-del-group{background:#FEEDE8;border:1px solid #F5C0B0;border-radius:4px;padding:2px 8px;font-size:10px;
     color:#B33A1F;cursor:pointer;font-family:inherit}
   .notes-entry{background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden}
   .notes-entry-hdr{background:var(--fbg);padding:9px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
@@ -412,11 +412,12 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .g-today-label{
     position:absolute;top:0;transform:translateX(-50%);
     font-size:8px;font-weight:700;letter-spacing:.04em;
-    color:#E05C30;background:rgba(255,255,255,.92);
+    color:var(--danger);background:rgba(255,255,255,.92);
     padding:1px 4px;border-radius:0 0 4px 4px;
     white-space:nowrap;z-index:5;pointer-events:none;
-    border:1px solid rgba(224,92,48,.3);border-top:none;
+    border:1px solid rgba(201,75,75,.3);border-top:none;
   }
+  body.dark .g-today-label{background:rgba(26,30,26,.95);border-color:rgba(217,107,107,.4)}
   .bar-seg{position:absolute;top:50%;transform:translateY(-50%);z-index:3}
   /* Water/fertilizer indicators sit in the space ABOVE the bar */
   .day-indicator{position:absolute;top:16%;transform:translate(-50%,-50%);
@@ -688,6 +689,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   /* notes */
   body.dark .notes-entry{border-color:var(--border)}
   body.dark .plog-del-group{background:var(--fbg);color:var(--text-secondary);border-color:var(--border)}
+  body.dark .plog-del-group:hover{background:var(--border)}
+  /* Delete/danger button in dark: subtle red treatment */
+  body.dark .plog-del-group:not(.note-edit-btn){color:var(--danger);border-color:var(--danger);background:rgba(217,107,107,.08)}
+  /* Plant log detail tabs */
+  body.dark .pd-tab{color:var(--text-secondary)}
+  body.dark .pd-tab:hover{color:#4FA66A;background:var(--fbg)}
+  body.dark .pd-tab.active{color:#4FA66A;border-bottom-color:#4FA66A;font-weight:700}
   body.dark .note-edit-btn{background:var(--fbg);color:var(--accent);border-color:var(--accent)}
   /* catalog table */
   body.dark .ctable th{background:var(--fbg);color:var(--text-secondary)}
@@ -773,7 +781,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   #user-email{font-size:10px;color:rgba(255,255,255,.7);font-family:'DM Mono',monospace;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #signout-btn{background:rgba(255,255,255,.12);border:0.5px solid rgba(255,255,255,.25);color:rgba(255,255,255,.8);font-size:10px;padding:4px 9px;border-radius:5px;cursor:pointer;font-family:'DM Mono',monospace}
   #signout-btn:hover{background:rgba(255,255,255,.22)}
-  .pd-tab{background:transparent;border:none;padding:10px 18px;font-size:11px;font-family:'DM Mono',monospace;color:#777;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap}
+  .pd-tab{background:transparent;border:none;padding:10px 18px;font-size:11px;font-family:'DM Mono',monospace;color:var(--text-secondary);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap}
   .pd-tab:hover{color:var(--nav);background:var(--fbg)}
   .pd-tab.active{color:var(--nav);font-weight:700;border-bottom-color:var(--nav)}
   /* Plant Log list rows */
@@ -1854,7 +1862,7 @@ function makeTimeline(plant,cols,bounds,W,thin,todayPx,bg){
   grayBar.style.cssText=`
     position:absolute;left:0;width:${W}px;height:${barH};
     top:50%;transform:translateY(-50%);
-    background:#D8D3CC;border-radius:${radius};
+    background:${document.body.classList.contains('dark')?'#303830':'#D8D3CC'};border-radius:${radius};
     z-index:1;box-shadow:0 1px 2px rgba(0,0,0,.08)`;
   area.appendChild(grayBar);
 
@@ -4382,22 +4390,22 @@ function buildLifecycleSection(plant){
     let defs=`<clipPath id="lc"><rect x="0" y="0" width="${W}" height="${barH}" rx="${R}"/></clipPath>
       <linearGradient id="lcfull" x1="0%" y1="0" x2="100%" y2="0">${gradStops}</linearGradient>`;
 
-    let bars=`<rect x="0" y="0" width="${W}" height="${barH}" rx="${R}" fill="#D8D3CC"/>`;
+    let bars=`<rect x="0" y="0" width="${W}" height="${barH}" rx="${R}" fill="${document.body.classList.contains('dark')?'#303830':'#D8D3CC'}"/>`;
     bars+=`<g clip-path="url(#lc)">`;
     bars+=`<rect x="0" y="0" width="${W}" height="${barH}" fill="url(#lcfull)"/>`;
     // Projected tail: semi-transparent wash dims the gradient for unconfirmed phases
     const firstProjIdx=MS.findIndex(m=>m.isProj);
     if(firstProjIdx>=0){
       const projX=Math.max(0,px(MS[firstProjIdx].ms));
-      bars+=`<rect x="${projX}" y="0" width="${W-projX}" height="${barH}" fill="#E8E2D9" opacity=".62"/>`;
+      bars+=`<rect x="${projX}" y="0" width="${W-projX}" height="${barH}" fill="${document.body.classList.contains('dark')?'#1D221D':'#E8E2D9'}" opacity=".75"/>`;
     }
     bars+=`</g>`;
     // Numbered badges — proportionally scaled, equal-gap all sides
     const cy=Math.round(barH/2);
     MS.forEach((m,i)=>{
       const x=badgeX(m,i);
-      const bgFill=m.isProj?"rgba(200,194,187,0.88)":"rgba(245,243,240,0.95)";
-      const txtFill=m.isProj?"#777":"#444";
+      const bgFill=document.body.classList.contains('dark')?(m.isProj?'rgba(40,48,40,0.92)':'rgba(55,66,55,0.95)'):(m.isProj?'rgba(200,194,187,0.88)':'rgba(245,243,240,0.95)');
+      const txtFill=document.body.classList.contains('dark')?(m.isProj?'#6E7E6E':'#C0CAC0'):(m.isProj?'#777':'#444');
       bars+=`<circle cx="${x}" cy="${cy}" r="${badgeR}" fill="${bgFill}"/>
         <text x="${x}" y="${cy+2.5}" text-anchor="middle" font-size="8" fill="${txtFill}" font-family="DM Mono,monospace" font-weight="700">${i+1}</text>`;
     });
