@@ -365,6 +365,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .pd-action-btn-danger:hover{background:#FEF0EC}
   .plog-del-group{background:#FEEDE8;border:1px solid #F5C0B0;border-radius:4px;padding:2px 8px;font-size:10px;
     color:#B33A1F;cursor:pointer;font-family:inherit}
+  .note-edit-btn{background:var(--fbg);color:var(--text-body);border:1px solid var(--border) !important;border-radius:4px;padding:2px 8px;font-size:10px;cursor:pointer;font-family:inherit}
+  .note-edit-btn:hover{background:var(--border)}
   .notes-entry{background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden}
   .notes-entry-hdr{background:var(--fbg);padding:9px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
   .notes-entry-body{padding:12px 16px;font-size:12px;color:var(--text-body);line-height:1.7;white-space:pre-wrap}
@@ -632,7 +634,6 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .log-status{font-size:10px;color:#2E7D4F;margin-left:auto;font-style:italic}
   .log-plant-list{flex:1;overflow-y:auto;background:var(--bg)}
   .log-plant-row{border-bottom:1px solid var(--border);background:var(--card)}
-  .log-plant-row:nth-child(even){background:var(--fbg)}
   .log-plant-hdr{display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;user-select:none;transition:background .1s}
   .log-plant-hdr:hover{background:var(--fbg)}
   .log-plant-hdr.has-log{border-left:3px solid #2E7D4F}
@@ -696,7 +697,6 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   body.dark .log-plant-hdr{background:var(--card);color:var(--text-body)}
   body.dark .log-plant-hdr:hover{background:var(--fbg)}
   body.dark .log-plant-row{color:var(--text-body)}
-  body.dark .log-plant-row:nth-child(even){background:var(--fbg)}
   body.dark .log-form{background:var(--fbg)}
   body.dark .plog-family-hdr{background:var(--fbg);color:var(--nav-text,#4FA66A);border-color:var(--border)}
   body.dark .plog-name{color:var(--text-body)}
@@ -794,7 +794,6 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   body.dark #dates-btn,body.dark .corner-btn{color:var(--text-secondary)}
   /* plant log family header: green in dark mode */
   body.dark .plog-family-hdr{color:#4FA66A}
-  body.dark .plog-row:nth-child(even){background:var(--fbg)}
 
   /* ── Auth / Login ── */
   #auth-overlay{position:fixed;inset:0;background:var(--nav);z-index:9999;display:flex;align-items:center;justify-content:center}
@@ -824,7 +823,6 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   /* Plant Log list rows */
   .plog-family-hdr{padding:8px 16px 4px;font-family:'Fraunces',serif;font-size:13px;font-weight:600;color:var(--nav);background:var(--fbg);border-bottom:1px solid var(--border);border-top:1px solid var(--border)}
   .plog-row{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;background:var(--card);transition:background .1s}
-  .plog-row:nth-child(even){background:var(--fbg)}
   .plog-row:hover{background:var(--fbg)}
   .cat-row{cursor:pointer;transition:background .1s}
   .cat-row td{transition:background .1s}
@@ -1512,6 +1510,7 @@ let showHarvest  = false;
 let showIcons    = true;
 let showDates    = false;
 let filterFlags = {active:true, finished:true, archived:false}; // multi-select filter
+let timelineSearch = ""; // text search across plant name, id, family, subtype
 let selectMode  = false;       // multi-select mode on/off
 let selectedIds = new Set();   // currently selected plant IDs
 let openMenuId  = null;
@@ -2553,6 +2552,14 @@ function render(){
 
   corner.innerHTML=`
     <div class="corner-filter">
+      <div style="position:relative;margin-bottom:4px">
+        <i class="ti ti-search" style="position:absolute;left:7px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text-secondary);pointer-events:none"></i>
+        <input id="timeline-search-inp" type="text" value="${timelineSearch}"
+          placeholder="Search plants…"
+          oninput="timelineSearch=this.value.toLowerCase();render()"
+          style="width:100%;padding:4px 7px 4px 24px;border:1px solid var(--border);border-radius:5px;font-size:10px;background:var(--card);color:var(--text-body);font-family:'DM Mono',monospace;outline:none"/>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px">
       <span class="filter-lbl">Filter</span>
       <button class="filter-trigger" onclick="toggleFilterMenu(event)">
         <span>${filterBtnText}</span>
@@ -2571,6 +2578,7 @@ function render(){
           <input type="checkbox" ${filterFlags.archived?'checked':''} onchange="toggleFilterFlag('archived')"/>
           <span class="filter-opt-label">📦 Archived</span>
         </label>
+      </div>
       </div>
     </div>
     <div class="corner-bottom">
@@ -2688,17 +2696,23 @@ function render(){
     strip.appendChild(badge);
     inner.appendChild(strip);
   }
-  // Apply status filter
+  // Apply status + search filter
   let famTop=80; // matches --hh header height
   const filteredGroups={};
+  const _tsTerm=timelineSearch.trim().toLowerCase();
   Object.entries(groups).forEach(([fam,plants])=>{
     const fp=plants.filter(p=>{
       const isArchived=!!p.archived;
       const isFinished=!!p.removed;
       const isActive=!isArchived&&!isFinished;
-      if(isArchived) return filterFlags.archived;
-      if(isFinished) return filterFlags.finished;
-      return filterFlags.active;
+      if(isArchived && !filterFlags.archived) return false;
+      if(isFinished && !filterFlags.finished) return false;
+      if(isActive  && !filterFlags.active)   return false;
+      if(_tsTerm){
+        const hay=[p.id,p.type,p.family,p._catalog?.subcategory||'',p._catalog?.category||''].join(' ').toLowerCase();
+        if(!hay.includes(_tsTerm)) return false;
+      }
+      return true;
     });
     if(fp.length) filteredGroups[fam]=fp;
   });
