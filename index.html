@@ -655,6 +655,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .log-save-btn:hover{background:#256A47}
   .log-saved-badge{display:inline-block;font-size:9px;background:#E8F5EE;color:#2E7D4F;border:1px solid #A8D8B8;border-radius:4px;padding:2px 7px;margin-left:6px;vertical-align:middle}
 
+  /* ── Fertilizer multi-select pills ── */
+  .fert-pills{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
+  .fert-pill{background:var(--fbg);border:1px solid var(--border);border-radius:12px;padding:3px 10px;font-size:10px;cursor:pointer;font-family:'DM Mono',monospace;color:var(--text-body);transition:all .15s;user-select:none}
+  .fert-pill:hover{background:var(--border)}
+  .fert-pill.on{background:var(--nav);color:#fff;border-color:var(--nav)}
+  body.dark .fert-pill.on{background:#4FA66A;color:#1A1E1A;border-color:#4FA66A}
+
   /* ── Side-nav sidebar (Notes & Photos) ── */
   .snav-header{padding:8px 12px 5px;font-size:8px;font-weight:700;color:var(--text-secondary);letter-spacing:.08em;text-transform:uppercase;border-bottom:0.5px solid var(--border);position:sticky;top:0;background:var(--fbg);z-index:2}
   .snav-year{display:flex;align-items:center;gap:6px;padding:7px 12px;cursor:pointer;font-size:12px;font-weight:700;color:var(--nav);background:var(--fbg);border-bottom:0.5px solid var(--border);user-select:none}
@@ -949,7 +956,14 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       <button class="tbtn" onclick="navigate(1)">Forward ▶</button>
       <button class="tbtn" id="today-btn" onclick="goToToday()">Today</button>
 
-      <!-- Secondary: legend + undo/redo + scale — pushed to far right -->
+      <!-- Timeline search — lives in toolbar so render() never destroys it -->
+      <div style="position:relative;margin-left:8px">
+        <i class="ti ti-search" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text-secondary);pointer-events:none"></i>
+        <input id="timeline-search-inp" type="text"
+          placeholder="Search plants…"
+          oninput="timelineSearch=this.value.toLowerCase();render()"
+          style="padding:5px 10px 5px 26px;border:1px solid var(--border);border-radius:6px;font-size:11px;background:var(--card);color:var(--text-body);font-family:'DM Mono',monospace;outline:none;width:180px"/>
+      </div>
       <div style="margin-left:auto;display:flex;align-items:center;gap:4px;border-left:1px solid rgba(255,255,255,.15);padding-left:10px">
         <div id="legend" style="display:flex;gap:10px;align-items:center;padding-right:8px;border-right:1px solid rgba(255,255,255,.15)">
           <div class="leg-item"><div class="leg-pill" style="background:linear-gradient(to right,#1E5B35,#1E5B35)"></div><span class="leg-lbl">Planted</span></div>
@@ -1329,7 +1343,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
           <div class="log-field"><span class="log-field-lbl">🍗 Fertilized</span>
             <label class="log-check-row"><input type="checkbox" id="aev-fert" onchange="document.getElementById('aev-fert-sub').style.display=this.checked?'flex':'none'"/> Fertilized today</label>
             <div id="aev-fert-sub" style="display:none;flex-direction:column;gap:6px;margin-top:8px">
-              <select class="log-select" id="aev-fert-type"><option value="">— type —</option><option value="granular">Granular</option><option value="liquid">Liquid</option><option value="organic">Organic</option><option value="compost">Compost</option></select>
+              <div class="fert-pills" id="aev-fert-pills">
+                <button type="button" class="fert-pill" data-val="granular"     onclick="toggleFertPill(this)">Granular</button>
+                <button type="button" class="fert-pill" data-val="liquid"       onclick="toggleFertPill(this)">Liquid</button>
+                <button type="button" class="fert-pill" data-val="organic"      onclick="toggleFertPill(this)">Organic</button>
+                <button type="button" class="fert-pill" data-val="compost"      onclick="toggleFertPill(this)">Compost</button>
+                <button type="button" class="fert-pill" data-val="slow-release" onclick="toggleFertPill(this)">Slow-release</button>
+              </div>
               <input type="text" class="log-inp" id="aev-fert-notes" placeholder="e.g. Dr. Earth 5-7-3…"/>
             </div>
           </div>
@@ -2250,6 +2270,19 @@ function toggleDark(){
   }
 })();
 
+// ── Fertilizer pill helpers ───────────────────────────────────────────────────
+function toggleFertPill(btn){ btn.classList.toggle('on'); }
+function getFertPills(groupId){
+  const active=[...document.querySelectorAll(`#${groupId} .fert-pill.on`)].map(b=>b.dataset.val);
+  return active.length?active.join(','):null;
+}
+function setFertPills(groupId, val){
+  const vals=(val||'').split(',').map(v=>v.trim().toLowerCase()).filter(Boolean);
+  document.querySelectorAll(`#${groupId} .fert-pill`).forEach(b=>{
+    b.classList.toggle('on', vals.includes(b.dataset.val));
+  });
+}
+
 // ── Auth functions ────────────────────────────────────────────────────────────
 function switchAuthTab(tab){
   document.getElementById('auth-signin').style.display=tab==='signin'?'block':'none';
@@ -2552,16 +2585,8 @@ function render(){
 
   corner.innerHTML=`
     <div class="corner-filter">
-      <div style="position:relative;margin-bottom:4px">
-        <i class="ti ti-search" style="position:absolute;left:7px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text-secondary);pointer-events:none"></i>
-        <input id="timeline-search-inp" type="text" value="${timelineSearch}"
-          placeholder="Search plants…"
-          oninput="timelineSearch=this.value.toLowerCase();render()"
-          style="width:100%;padding:4px 7px 4px 24px;border:1px solid var(--border);border-radius:5px;font-size:10px;background:var(--card);color:var(--text-body);font-family:'DM Mono',monospace;outline:none"/>
-      </div>
-      <div style="display:flex;align-items:center;gap:5px">
-      <span class="filter-lbl">Filter</span>
-      <button class="filter-trigger" onclick="toggleFilterMenu(event)">
+      <button class="filter-trigger" onclick="toggleFilterMenu(event)" title="Filter plants">
+        <i class="ti ti-filter" style="font-size:11px"></i>
         <span>${filterBtnText}</span>
         <span class="caret">▼</span>
       </button>
@@ -2578,7 +2603,6 @@ function render(){
           <input type="checkbox" ${filterFlags.archived?'checked':''} onchange="toggleFilterFlag('archived')"/>
           <span class="filter-opt-label">📦 Archived</span>
         </label>
-      </div>
       </div>
     </div>
     <div class="corner-bottom">
@@ -4709,7 +4733,13 @@ async function renderPlantDetailTab(tab, plant, cat){
                 <div class="log-field"><span class="log-field-lbl">🍗 Fertilized</span>
                   <label class="log-check-row"><input type="checkbox" id="al-fert" onchange="document.getElementById('al-fert-sub').style.display=this.checked?'flex':'none'"/> Fertilized today</label>
                   <div id="al-fert-sub" style="display:none;flex-direction:column;gap:6px;margin-top:8px">
-                    <select class="log-select" id="al-fert-type"><option value="">— Fertilizer type —</option><option value="granular">Granular</option><option value="liquid">Liquid</option><option value="organic">Organic</option><option value="compost">Compost</option></select>
+                    <div class="fert-pills" id="al-fert-pills">
+                      <button type="button" class="fert-pill" data-val="granular"     onclick="toggleFertPill(this)">Granular</button>
+                      <button type="button" class="fert-pill" data-val="liquid"       onclick="toggleFertPill(this)">Liquid</button>
+                      <button type="button" class="fert-pill" data-val="organic"      onclick="toggleFertPill(this)">Organic</button>
+                      <button type="button" class="fert-pill" data-val="compost"      onclick="toggleFertPill(this)">Compost</button>
+                      <button type="button" class="fert-pill" data-val="slow-release" onclick="toggleFertPill(this)">Slow-release</button>
+                    </div>
                     <input type="text" class="log-inp" id="al-fert-notes" placeholder="e.g. Dr. Earth 5-7-3…"/>
                   </div>
                 </div>
@@ -5133,7 +5163,7 @@ function editActivityEntry(logId, harvestId, dbId, plantCode, date, watered, fer
   const fertEl=document.getElementById('aev-fert');
   fertEl.checked=fertilized===true||fertilized==='true';
   document.getElementById('aev-fert-sub').style.display=fertEl.checked?'flex':'none';
-  document.getElementById('aev-fert-type').value=fertType||'';
+  setFertPills('aev-fert-pills',fertType||'');
   document.getElementById('aev-fert-notes').value=fertNotes||'';
   document.getElementById('aev-notes').value=notes||'';
   // Open panel
@@ -5152,7 +5182,7 @@ async function saveActivityEdit(){
   const date=document.getElementById('aev-date').value;
   const watered=document.getElementById('aev-water').checked;
   const fert=document.getElementById('aev-fert').checked;
-  const fertType=document.getElementById('aev-fert-type').value||null;
+  const fertType=getFertPills('aev-fert-pills');
   const fertNotes=document.getElementById('aev-fert-notes').value.trim()||null;
   const qty=parseInt(document.getElementById('aev-harvest').value)||0;
   const weight=parseFloat(document.getElementById('aev-weight').value)||null;
@@ -5692,7 +5722,7 @@ async function saveActivityEntry(dbId, plantCode){
   const date   = document.getElementById("al-date")?.value||isoDate(TODAY);
   const watered= document.getElementById("al-water")?.checked||false;
   const fert   = document.getElementById("al-fert")?.checked||false;
-  const fertType=document.getElementById("al-fert-type")?.value||null;
+  const fertType=getFertPills("al-fert-pills");
   const qty    = parseInt(document.getElementById("al-harvest")?.value)||0;
   const weight = parseFloat(document.getElementById("al-weight")?.value)||null;
   const notes  = document.getElementById("al-notes")?.value||"";
