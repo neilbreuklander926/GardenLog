@@ -654,7 +654,21 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .log-save-btn:hover{background:#256A47}
   .log-saved-badge{display:inline-block;font-size:9px;background:#E8F5EE;color:#2E7D4F;border:1px solid #A8D8B8;border-radius:4px;padding:2px 7px;margin-left:6px;vertical-align:middle}
 
-  /* ── Dark mode overrides ── */
+  /* ── Side-nav sidebar (Notes & Photos) ── */
+  .snav-header{padding:8px 12px 5px;font-size:8px;font-weight:700;color:var(--text-secondary);letter-spacing:.08em;text-transform:uppercase;border-bottom:0.5px solid var(--border);position:sticky;top:0;background:var(--fbg);z-index:2}
+  .snav-year{display:flex;align-items:center;gap:6px;padding:7px 12px;cursor:pointer;font-size:12px;font-weight:700;color:var(--nav);background:var(--fbg);border-bottom:0.5px solid var(--border);user-select:none}
+  .snav-year:hover{background:var(--border)}
+  body.dark .snav-year{color:#4FA66A}
+  .snav-month{display:flex;justify-content:space-between;align-items:center;padding:5px 12px 5px 22px;cursor:pointer;font-size:11px;color:var(--text-body);user-select:none}
+  .snav-month:hover{background:var(--border)}
+  .snav-month.active{background:rgba(30,91,53,.1);border-right:2px solid var(--nav);color:var(--nav);font-weight:600}
+  body.dark .snav-month.active{background:rgba(79,166,106,.12);border-right-color:#4FA66A;color:#4FA66A}
+  .snav-count{font-size:9px;color:var(--text-secondary);background:transparent}
+  .snav-month.active .snav-count{color:var(--nav);opacity:.7}
+  body.dark .snav-month.active .snav-count{color:#4FA66A}
+  /* Content panel header */
+  .snav-content-hdr{display:flex;align-items:center;gap:8px;padding:13px 16px 10px;border-bottom:0.5px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:2}
+  .snav-content-body{padding:14px 16px}
   body.dark #toolbar{background:var(--card);border-bottom-color:var(--border)}
   body.dark #zoom-group{background:var(--fbg)}
   /* Today button — matches Back/Forward exactly in both modes */
@@ -1043,11 +1057,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     </div>
   </div>
 
-  <div id="view-photos" style="display:none;flex-direction:column;height:calc(100vh - 52px);overflow-y:auto;background:var(--bg)">
-    <div class="plog-wrap" id="garden-photos-content"></div>
+  <div id="view-photos" style="display:none;flex-direction:row;height:calc(100vh - 52px);overflow:hidden;background:var(--bg)">
+    <div id="photos-nav-sidebar" style="width:190px;flex-shrink:0;overflow-y:auto;background:var(--fbg);border-right:0.5px solid var(--border)"></div>
+    <div id="photos-content-panel" style="flex:1;overflow-y:auto;background:var(--bg)"></div>
   </div>
-  <div id="view-notes" style="display:none;flex-direction:column;height:calc(100vh - 52px);overflow-y:auto;background:var(--bg)">
-    <div class="plog-wrap" id="garden-notes-content"></div>
+  <div id="view-notes" style="display:none;flex-direction:row;height:calc(100vh - 52px);overflow:hidden;background:var(--bg)">
+    <div id="notes-nav-sidebar" style="width:190px;flex-shrink:0;overflow-y:auto;background:var(--fbg);border-right:0.5px solid var(--border)"></div>
+    <div id="notes-content-panel" style="flex:1;overflow-y:auto;background:var(--bg)"></div>
   </div>
   <div id="view-settings" style="display:none;flex-direction:column;height:calc(100vh - 52px);overflow-y:auto;background:var(--bg)">
     <div id="settings-tab-content" style="max-width:600px;margin:32px auto;padding:0 24px;width:100%"></div>
@@ -5248,16 +5264,113 @@ async function deletePlantPhotoGroup(dbId, plantCode, date){
 }
 
 // ── Garden Photos (main Photos tab) ───────────────────────────────────────────
-async function renderGardenPhotos(){
-  const c=document.getElementById('garden-photos-content'); if(!c) return;
-  const {data:photos}=await supa.from('garden_photos').select('*').order('photo_date',{ascending:false}).order('created_at',{ascending:true});
+// ── Garden Photos — side-nav layout ──────────────────────────────────────────
+window._photosData=[];
+window._photosSelYear=null;
+window._photosSelMonth=null;
+window._photosExpandedYears=new Set();
+window._photosShowUpload=false;
+
+function _photosGroupByYM(photos){
+  const byYM={};
+  (photos||[]).forEach(p=>{
+    const d=new Date(p.photo_date+'T00:00:00');
+    const yr=d.getFullYear(), mo=d.getMonth();
+    const key=`${yr}-${String(mo+1).padStart(2,'0')}`;
+    if(!byYM[key]) byYM[key]={yr,mo,label:d.toLocaleDateString('en-US',{month:'long'}),count:0,items:[]};
+    byYM[key].count++;
+    byYM[key].items.push(p);
+  });
+  // Group into years
+  const byYr={};
+  Object.values(byYM).forEach(v=>{
+    if(!byYr[v.yr]) byYr[v.yr]={count:0,months:[]};
+    byYr[v.yr].count+=v.count;
+    byYr[v.yr].months.push(v);
+  });
+  Object.values(byYr).forEach(y=>y.months.sort((a,b)=>b.mo-a.mo));
+  return {byYM,byYr};
+}
+
+function _photosRenderSidebar(byYr){
+  const sb=document.getElementById('photos-nav-sidebar'); if(!sb) return;
+  const years=Object.keys(byYr).map(Number).sort((a,b)=>b-a);
+  let h=`<div class="snav-header">Browse by date</div>`;
+  // "All photos" entry
+  const allActive=window._photosSelYear===null;
+  h+=`<div class="snav-month ${allActive?'active':''}" onclick="photosSelectPeriod(null,null)" style="padding:6px 12px;font-weight:600">
+    All photos <span class="snav-count">${window._photosData.length}</span>
+  </div>`;
+  years.forEach(yr=>{
+    const isExp=window._photosExpandedYears.has(yr);
+    h+=`<div class="snav-year" onclick="photosToggleYear(${yr})">
+      <i class="ti ti-chevron-${isExp?'down':'right'}" style="font-size:10px;opacity:.6"></i>
+      <span>${yr}</span>
+      <span class="snav-count" style="margin-left:auto">${byYr[yr].count}</span>
+    </div>`;
+    if(isExp){
+      byYr[yr].months.forEach(m=>{
+        const isSel=window._photosSelYear===yr&&window._photosSelMonth===m.mo;
+        h+=`<div class="snav-month ${isSel?'active':''}" onclick="photosSelectPeriod(${yr},${m.mo})">
+          <span>${m.label}</span><span class="snav-count">${m.count}</span>
+        </div>`;
+      });
+    }
+  });
+  sb.innerHTML=h;
+}
+
+function _photosRenderContent(byYM){
+  const cp=document.getElementById('photos-content-panel'); if(!cp) return;
+  const yr=window._photosSelYear, mo=window._photosSelMonth;
+  // Filter photos
+  let items=[];
+  if(yr===null){
+    items=window._photosData;
+  } else if(mo===null){
+    items=window._photosData.filter(p=>new Date(p.photo_date+'T00:00:00').getFullYear()===yr);
+  } else {
+    const key=`${yr}-${String(mo+1).padStart(2,'0')}`;
+    items=(byYM[key]?.items)||[];
+  }
+  // Group by date for display
   const byDate={};
-  (photos||[]).forEach(p=>{ if(!byDate[p.photo_date]) byDate[p.photo_date]={notes:p.notes,photos:[]}; byDate[p.photo_date].photos.push(p); });
-  const histHtml=Object.entries(byDate).map(([date,g])=>`
+  items.forEach(p=>{
+    if(!byDate[p.photo_date]) byDate[p.photo_date]={notes:p.notes,photos:[]};
+    byDate[p.photo_date].photos.push(p);
+  });
+  const title=yr===null?'All Photos':mo===null?`${yr}`:`${new Date(yr,mo,1).toLocaleDateString('en-US',{month:'long',year:'numeric'})}`;
+  const uploadHtml=window._photosShowUpload?`
+    <div class="pd-section" style="margin-bottom:12px">
+      <div class="pd-section-hdr" style="display:flex;align-items:center;justify-content:space-between">
+        Upload Photos
+        <button onclick="window._photosShowUpload=false;_photosRenderContent(_photosGroupByYM(window._photosData).byYM)"
+          style="background:transparent;border:none;font-size:14px;cursor:pointer;color:var(--text-secondary)">✕</button>
+      </div>
+      <div class="pd-section-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;margin-bottom:12px">
+          <div class="log-field"><span class="log-field-lbl">Date</span><input type="date" id="gp-date" class="log-inp" value="${isoDate(TODAY)}"/></div>
+          <div class="log-field"><span class="log-field-lbl">Caption (optional)</span><input type="text" id="gp-notes" class="log-inp" placeholder="Caption for these photos…"/></div>
+        </div>
+        <div class="plog-upload-zone" id="gp-zone"
+          ondragenter="plogZoneDrag('gp-zone',true)" ondragleave="plogZoneDrag('gp-zone',false)"
+          ondragover="event.preventDefault()" ondrop="plogZoneDrop('gp-zone',event)">
+          <input type="file" id="gp-files" accept="image/*" multiple onchange="plogPreview('gp-zone','gp-preview',this)"/>
+          <div id="gp-zone-label" style="pointer-events:none">
+            <div style="font-size:28px;margin-bottom:6px">📷</div>
+            <div style="font-size:12px;font-weight:500;color:var(--text-body)">Click or drag photos here</div>
+            <div style="font-size:10px;color:var(--text-secondary);margin-top:3px">Supports multiple files · JPG, PNG, HEIC</div>
+          </div>
+          <div id="gp-preview" style="display:none;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px"></div>
+        </div>
+        <button class="log-save-btn" style="margin-top:10px" onclick="saveGardenPhotos()">Save Photos</button>
+      </div>
+    </div>`:'';
+  const histHtml=Object.entries(byDate).sort((a,b)=>b[0].localeCompare(a[0])).map(([date,g])=>`
     <div class="plog-date-group">
       <div class="plog-date-hdr">
         <span class="plog-date-lbl">${new Date(date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"long",day:"numeric",year:"numeric"})}</span>
-        <button class="plog-del-group" onclick="deleteGardenPhotoGroup('${date}')">Delete all</button>
+        <button class="inline-del-btn" onclick="deleteGardenPhotoGroup('${date}')">Delete all</button>
       </div>
       ${g.notes?`<div class="plog-date-notes">${g.notes}</div>`:""}
       <div class="plog-photo-grid">${g.photos.map(p=>`
@@ -5266,36 +5379,50 @@ async function renderGardenPhotos(){
           <button class="plog-photo-del" onclick="deleteGardenPhoto('${p.id}','${p.photo_url}')">✕</button>
         </div>`).join("")}
       </div>
-    </div>`).join("")||`<div style="color:#aaa;font-size:11px">No photos yet.</div>`;
-
-  c.innerHTML=`
-    <div class="pd-panel">
-      <div class="pd-section">
-        <div class="pd-section-hdr">Upload Photos</div>
-        <div class="pd-section-body">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;margin-bottom:12px">
-            <div class="log-field"><span class="log-field-lbl">Date</span><input type="date" id="gp-date" class="log-inp" value="${isoDate(TODAY)}"/></div>
-            <div class="log-field"><span class="log-field-lbl">Notes (optional)</span><input type="text" id="gp-notes" class="log-inp" placeholder="Caption for these photos…"/></div>
-          </div>
-          <div class="plog-upload-zone" id="gp-zone"
-            ondragenter="plogZoneDrag('gp-zone',true)" ondragleave="plogZoneDrag('gp-zone',false)"
-            ondragover="event.preventDefault()" ondrop="plogZoneDrop('gp-zone',event)">
-            <input type="file" id="gp-files" accept="image/*" multiple onchange="plogPreview('gp-zone','gp-preview',this)"/>
-            <div id="gp-zone-label" style="pointer-events:none">
-              <div style="font-size:28px;margin-bottom:6px">📷</div>
-              <div style="font-size:12px;font-weight:500;color:var(--text-body)">Click or drag photos here</div>
-              <div style="font-size:10px;color:#888;margin-top:3px">Supports multiple files · JPG, PNG, HEIC</div>
-            </div>
-            <div id="gp-preview" style="display:none;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px"></div>
-          </div>
-          <button class="log-save-btn" onclick="saveGardenPhotos()">Save Photos</button>
-        </div>
-      </div>
-      <div class="pd-section">
-        <div class="pd-section-hdr">Photo History</div>
-        <div class="pd-section-body" id="gp-history">${histHtml}</div>
-      </div>
+    </div>`).join("")||`<div style="color:var(--text-secondary);font-size:11px;padding:20px 0">No photos for this period.</div>`;
+  cp.innerHTML=`
+    <div class="snav-content-hdr">
+      <span style="font-size:14px;font-weight:600;color:var(--nav-text,var(--nav))">${title}</span>
+      <span style="font-size:10px;color:var(--text-secondary)">${items.length} photo${items.length!==1?'s':''}</span>
+      <button onclick="window._photosShowUpload=!window._photosShowUpload;_photosRenderContent(_photosGroupByYM(window._photosData).byYM)"
+        style="margin-left:auto;background:var(--nav);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:600">
+        📷 Upload
+      </button>
+    </div>
+    <div class="snav-content-body">
+      ${uploadHtml}
+      ${histHtml}
     </div>`;
+}
+
+async function renderGardenPhotos(){
+  const {data:photos}=await supa.from('garden_photos').select('*').order('photo_date',{ascending:false}).order('created_at',{ascending:true});
+  window._photosData=photos||[];
+  const {byYM,byYr}=_photosGroupByYM(window._photosData);
+  // Set default selection: most recent month
+  if(window._photosSelYear===null&&window._photosData.length>0){
+    const latest=window._photosData[0];
+    const d=new Date(latest.photo_date+'T00:00:00');
+    window._photosSelYear=d.getFullYear();
+    window._photosSelMonth=d.getMonth();
+  }
+  // Ensure the selected year is expanded
+  if(window._photosSelYear) window._photosExpandedYears.add(window._photosSelYear);
+  _photosRenderSidebar(byYr);
+  _photosRenderContent(byYM);
+}
+function photosToggleYear(yr){
+  if(window._photosExpandedYears.has(yr)) window._photosExpandedYears.delete(yr);
+  else window._photosExpandedYears.add(yr);
+  const {byYr}=_photosGroupByYM(window._photosData);
+  _photosRenderSidebar(byYr);
+}
+function photosSelectPeriod(yr,mo){
+  window._photosSelYear=yr;
+  window._photosSelMonth=mo;
+  const {byYM,byYr}=_photosGroupByYM(window._photosData);
+  _photosRenderSidebar(byYr);
+  _photosRenderContent(byYM);
 }
 async function saveGardenPhotos(){
   const date=document.getElementById('gp-date')?.value||isoDate(TODAY);
@@ -5310,6 +5437,12 @@ async function saveGardenPhotos(){
     const {data:urlData}=supa.storage.from('garden-photos').getPublicUrl(path);
     await supa.from('garden_photos').insert(withUser({photo_date:date,photo_url:urlData.publicUrl,notes}));
   }
+  // Navigate to the uploaded month and close form
+  const d=new Date(date+'T00:00:00');
+  window._photosSelYear=d.getFullYear();
+  window._photosSelMonth=d.getMonth();
+  window._photosExpandedYears.add(window._photosSelYear);
+  window._photosShowUpload=false;
   renderGardenPhotos();
 }
 async function deleteGardenPhoto(photoId, photoUrl){
@@ -5330,50 +5463,157 @@ async function deleteGardenPhotoGroup(date){
   renderGardenPhotos();
 }
 
-// ── Garden Notes (main Notes tab) ─────────────────────────────────────────────
-async function renderGardenNotes(){
-  const c=document.getElementById('garden-notes-content'); if(!c) return;
-  const {data:notes}=await supa.from('garden_notes').select('*').order('note_date',{ascending:false});
-  const histHtml=(notes||[]).map(n=>`
+// ── Garden Notes — side-nav layout ───────────────────────────────────────────
+window._notesData=[];
+window._notesSelYear=null;
+window._notesSelMonth=null;
+window._notesExpandedYears=new Set();
+window._notesShowForm=false;
+
+function _notesGroupByYM(notes){
+  const byYM={};
+  (notes||[]).forEach(n=>{
+    const d=new Date(n.note_date+'T00:00:00');
+    const yr=d.getFullYear(), mo=d.getMonth();
+    const key=`${yr}-${String(mo+1).padStart(2,'0')}`;
+    if(!byYM[key]) byYM[key]={yr,mo,label:d.toLocaleDateString('en-US',{month:'long'}),count:0,items:[]};
+    byYM[key].count++;
+    byYM[key].items.push(n);
+  });
+  const byYr={};
+  Object.values(byYM).forEach(v=>{
+    if(!byYr[v.yr]) byYr[v.yr]={count:0,months:[]};
+    byYr[v.yr].count+=v.count;
+    byYr[v.yr].months.push(v);
+  });
+  Object.values(byYr).forEach(y=>y.months.sort((a,b)=>b.mo-a.mo));
+  return {byYM,byYr};
+}
+
+function _notesRenderSidebar(byYr){
+  const sb=document.getElementById('notes-nav-sidebar'); if(!sb) return;
+  const years=Object.keys(byYr).map(Number).sort((a,b)=>b-a);
+  let h=`<div class="snav-header">Browse by date</div>`;
+  const allActive=window._notesSelYear===null;
+  h+=`<div class="snav-month ${allActive?'active':''}" onclick="notesSelectPeriod(null,null)" style="padding:6px 12px;font-weight:600">
+    All notes <span class="snav-count">${window._notesData.length}</span>
+  </div>`;
+  years.forEach(yr=>{
+    const isExp=window._notesExpandedYears.has(yr);
+    h+=`<div class="snav-year" onclick="notesToggleYear(${yr})">
+      <i class="ti ti-chevron-${isExp?'down':'right'}" style="font-size:10px;opacity:.6"></i>
+      <span>${yr}</span>
+      <span class="snav-count" style="margin-left:auto">${byYr[yr].count}</span>
+    </div>`;
+    if(isExp){
+      byYr[yr].months.forEach(m=>{
+        const isSel=window._notesSelYear===yr&&window._notesSelMonth===m.mo;
+        h+=`<div class="snav-month ${isSel?'active':''}" onclick="notesSelectPeriod(${yr},${m.mo})">
+          <span>${m.label}</span><span class="snav-count">${m.count}</span>
+        </div>`;
+      });
+    }
+  });
+  sb.innerHTML=h;
+}
+
+function _notesRenderContent(byYM){
+  const cp=document.getElementById('notes-content-panel'); if(!cp) return;
+  const yr=window._notesSelYear, mo=window._notesSelMonth;
+  let items=[];
+  if(yr===null){
+    items=window._notesData;
+  } else if(mo===null){
+    items=window._notesData.filter(n=>new Date(n.note_date+'T00:00:00').getFullYear()===yr);
+  } else {
+    const key=`${yr}-${String(mo+1).padStart(2,'0')}`;
+    items=(byYM[key]?.items)||[];
+  }
+  const title=yr===null?'All Notes':mo===null?`${yr}`:`${new Date(yr,mo,1).toLocaleDateString('en-US',{month:'long',year:'numeric'})}`;
+  const formHtml=window._notesShowForm?`
+    <div class="pd-section" style="margin-bottom:12px">
+      <div class="pd-section-hdr" style="display:flex;align-items:center;justify-content:space-between">
+        Add Note
+        <button onclick="window._notesShowForm=false;_notesRenderContent(_notesGroupByYM(window._notesData).byYM)"
+          style="background:transparent;border:none;font-size:14px;cursor:pointer;color:var(--text-secondary)">✕</button>
+      </div>
+      <div class="pd-section-body">
+        <div style="margin-bottom:10px">
+          <div class="log-field"><span class="log-field-lbl">Date</span><input type="date" id="gn-date" class="log-inp" value="${isoDate(TODAY)}"/></div>
+        </div>
+        <div class="log-field"><span class="log-field-lbl">Note</span>
+          <textarea id="gn-content" class="log-inp" rows="4" placeholder="Write your garden note for this day…"></textarea>
+        </div>
+        <div style="margin-top:10px">
+          <button class="log-save-btn" onclick="saveGardenNote()">Save Note</button>
+        </div>
+      </div>
+    </div>`:'';
+  const notesHtml=items.map(n=>`
     <div class="notes-entry">
       <div class="notes-entry-hdr">
         <span class="plog-date-lbl">${new Date(n.note_date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"long",day:"numeric",year:"numeric"})}</span>
         <div style="display:flex;gap:6px">
           <button onclick="editGardenNote('${n.id}','${n.note_date}',this)" class="plog-del-group note-edit-btn">Edit</button>
-          <button onclick="deleteGardenNote('${n.id}')" class="plog-del-group">Delete</button>
+          <button onclick="deleteGardenNote('${n.id}')" class="inline-del-btn">Delete</button>
         </div>
       </div>
       <div class="notes-entry-body">${n.content.replace(/</g,'&lt;')}</div>
-    </div>`).join("")||`<div style="color:#aaa;font-size:11px">No notes yet.</div>`;
-
-  c.innerHTML=`
-    <div class="pd-panel">
-      <div class="pd-section">
-        <div class="pd-section-hdr">Add Note</div>
-        <div class="pd-section-body">
-          <div style="margin-bottom:10px">
-            <div class="log-field"><span class="log-field-lbl">Date</span><input type="date" id="gn-date" class="log-inp" value="${isoDate(TODAY)}"/></div>
-          </div>
-          <div class="log-field"><span class="log-field-lbl">Note</span>
-            <textarea id="gn-content" class="log-inp" rows="5" placeholder="Write your garden note for this day…"></textarea>
-          </div>
-          <div style="margin-top:10px">
-            <button class="log-save-btn" id="gn-save-btn" onclick="saveGardenNote()">Save Note</button>
-          </div>
-        </div>
-      </div>
-      <div class="pd-section">
-        <div class="pd-section-hdr">Note History</div>
-        <div class="pd-section-body" id="gn-history">${histHtml}</div>
-      </div>
+    </div>`).join("")||`<div style="color:var(--text-secondary);font-size:11px;padding:20px 0">No notes for this period.</div>`;
+  cp.innerHTML=`
+    <div class="snav-content-hdr">
+      <span style="font-size:14px;font-weight:600;color:var(--nav-text,var(--nav))">${title}</span>
+      <span style="font-size:10px;color:var(--text-secondary)">${items.length} note${items.length!==1?'s':''}</span>
+      <button onclick="window._notesShowForm=!window._notesShowForm;_notesRenderContent(_notesGroupByYM(window._notesData).byYM)"
+        style="margin-left:auto;background:var(--nav);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:600">
+        + Add Note
+      </button>
+    </div>
+    <div class="snav-content-body">
+      ${formHtml}
+      ${notesHtml}
     </div>`;
+}
+
+async function renderGardenNotes(){
+  const {data:notes}=await supa.from('garden_notes').select('*').order('note_date',{ascending:false});
+  window._notesData=notes||[];
+  const {byYM,byYr}=_notesGroupByYM(window._notesData);
+  // Default: select most recent month
+  if(window._notesSelYear===null&&window._notesData.length>0){
+    const latest=window._notesData[0];
+    const d=new Date(latest.note_date+'T00:00:00');
+    window._notesSelYear=d.getFullYear();
+    window._notesSelMonth=d.getMonth();
+  }
+  if(window._notesSelYear) window._notesExpandedYears.add(window._notesSelYear);
+  _notesRenderSidebar(byYr);
+  _notesRenderContent(byYM);
+}
+function notesToggleYear(yr){
+  if(window._notesExpandedYears.has(yr)) window._notesExpandedYears.delete(yr);
+  else window._notesExpandedYears.add(yr);
+  const {byYr}=_notesGroupByYM(window._notesData);
+  _notesRenderSidebar(byYr);
+}
+function notesSelectPeriod(yr,mo){
+  window._notesSelYear=yr;
+  window._notesSelMonth=mo;
+  const {byYM,byYr}=_notesGroupByYM(window._notesData);
+  _notesRenderSidebar(byYr);
+  _notesRenderContent(byYM);
 }
 async function saveGardenNote(){
   const date=document.getElementById('gn-date')?.value||isoDate(TODAY);
   const content=document.getElementById('gn-content')?.value.trim();
   if(!content){ alert('Please enter a note.'); return; }
   await supa.from('garden_notes').insert(withUser({note_date:date,content}));
-  document.getElementById('gn-content').value='';
+  // Navigate to the month of the saved note, close form
+  const d=new Date(date+'T00:00:00');
+  window._notesSelYear=d.getFullYear();
+  window._notesSelMonth=d.getMonth();
+  window._notesExpandedYears.add(window._notesSelYear);
+  window._notesShowForm=false;
   renderGardenNotes();
 }
 function editGardenNote(id, date, btn){
