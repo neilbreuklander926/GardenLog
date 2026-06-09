@@ -1224,12 +1224,12 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       <span class="bulk-hdr-date" id="bf-date"></span>
     </div>
     <div class="bulk-body">
-      <div class="bulk-sec-lbl">Fertilizer type</div>
-      <div class="bulk-type-row">
-        <button class="bulk-type-btn" data-ftype="granular" onclick="bulkFertSelectType(this)">Granular</button>
-        <button class="bulk-type-btn" data-ftype="liquid" onclick="bulkFertSelectType(this)">Liquid</button>
-        <button class="bulk-type-btn" data-ftype="organic" onclick="bulkFertSelectType(this)">Organic</button>
-        <button class="bulk-type-btn" data-ftype="compost" onclick="bulkFertSelectType(this)">Compost</button>
+      <div class="bulk-sec-lbl">Fertilizer type <span style="font-size:9px;color:var(--text-secondary);font-weight:400">(select all that apply)</span></div>
+      <div class="fert-pills" id="bf-fert-pills" style="margin-bottom:4px">
+        <button type="button" class="fert-pill" data-val="granular" onclick="toggleFertPill(this)">Granular</button>
+        <button type="button" class="fert-pill" data-val="liquid"   onclick="toggleFertPill(this)">Liquid</button>
+        <button type="button" class="fert-pill" data-val="organic"  onclick="toggleFertPill(this)">Organic</button>
+        <button type="button" class="fert-pill" data-val="compost"  onclick="toggleFertPill(this)">Compost</button>
       </div>
       <div class="bulk-sec-lbl">Notes (optional)</div>
       <textarea class="bulk-note" id="bf-notes" rows="2" placeholder="e.g. Dr. Earth 5-7-3, diluted 50%…"></textarea>
@@ -1348,7 +1348,6 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
                 <button type="button" class="fert-pill" data-val="liquid"       onclick="toggleFertPill(this)">Liquid</button>
                 <button type="button" class="fert-pill" data-val="organic"      onclick="toggleFertPill(this)">Organic</button>
                 <button type="button" class="fert-pill" data-val="compost"      onclick="toggleFertPill(this)">Compost</button>
-                <button type="button" class="fert-pill" data-val="slow-release" onclick="toggleFertPill(this)">Slow-release</button>
               </div>
               <input type="text" class="log-inp" id="aev-fert-notes" placeholder="e.g. Dr. Earth 5-7-3…"/>
             </div>
@@ -3452,18 +3451,13 @@ async function saveBulkWater(){
 }
 
 // ── Bulk Fertilize ────────────────────────────────────────────────────────────
-let bulkFertType=null;
-function bulkFertSelectType(btn){
-  document.querySelectorAll('[data-ftype]').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on'); bulkFertType=btn.dataset.ftype;
-}
 function openBulkFert(dateStr){
   try{
-    bulkActionDate=dateStr; bulkFertType=null;
+    bulkActionDate=dateStr;
     const plants=getActivePlantsForBulk();
     document.getElementById('bf-date').textContent=fmt(dateStr);
     document.getElementById('bf-notes').value='';
-    document.querySelectorAll('[data-ftype]').forEach(b=>b.classList.remove('on'));
+    document.querySelectorAll('#bf-fert-pills .fert-pill').forEach(b=>b.classList.remove('on'));
     const list=document.getElementById('bf-plant-list');
     list.innerHTML=plants.map(p=>`
       <div class="bulk-plant-row" data-pid="${p.id}" data-checked="true">
@@ -3487,7 +3481,7 @@ async function saveBulkFert(){
     const plant=PLANTS.find(p=>p.id===pid); if(!plant||!plant._dbId) continue;
     const {data:prev}=await supa.from('daily_logs').select('*').eq('plant_id',plant._dbId).eq('log_date',date).maybeSingle();
     await supa.from('daily_logs').upsert(
-      withUser({plant_id:plant._dbId,log_date:date,fertilized:true,fertilizer_type:bulkFertType||null,fertilizer_notes:notes}),
+      withUser({plant_id:plant._dbId,log_date:date,fertilized:true,fertilizer_type:getFertPills("bf-fert-pills"),fertilizer_notes:notes}),
       {onConflict:'plant_id,log_date',ignoreDuplicates:false});
     const key=`${pid}|${date}`;
     if(!DAILY_LOGS[key]) DAILY_LOGS[key]={watered:false,fertilizer:null,harvest:0,health:false};
@@ -3506,7 +3500,7 @@ async function saveBulkFert(){
         render();
       },
       redo:async()=>{ for(const{plant,key}of saved){
-        await supa.from('daily_logs').upsert(withUser({plant_id:plant._dbId,log_date:date,fertilized:true,fertilizer_type:bulkFertType||null,fertilizer_notes:notes}),{onConflict:'plant_id,log_date'});
+        await supa.from('daily_logs').upsert(withUser({plant_id:plant._dbId,log_date:date,fertilized:true,fertilizer_type:getFertPills("bf-fert-pills"),fertilizer_notes:notes}),{onConflict:'plant_id,log_date'});
         if(DAILY_LOGS[key]) DAILY_LOGS[key].fertilizer=bulkFertType||'other';
       } render(); }
     });
@@ -4738,7 +4732,6 @@ async function renderPlantDetailTab(tab, plant, cat){
                       <button type="button" class="fert-pill" data-val="liquid"       onclick="toggleFertPill(this)">Liquid</button>
                       <button type="button" class="fert-pill" data-val="organic"      onclick="toggleFertPill(this)">Organic</button>
                       <button type="button" class="fert-pill" data-val="compost"      onclick="toggleFertPill(this)">Compost</button>
-                      <button type="button" class="fert-pill" data-val="slow-release" onclick="toggleFertPill(this)">Slow-release</button>
                     </div>
                     <input type="text" class="log-inp" id="al-fert-notes" placeholder="e.g. Dr. Earth 5-7-3…"/>
                   </div>
