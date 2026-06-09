@@ -3485,7 +3485,7 @@ async function saveBulkFert(){
       {onConflict:'plant_id,log_date',ignoreDuplicates:false});
     const key=`${pid}|${date}`;
     if(!DAILY_LOGS[key]) DAILY_LOGS[key]={watered:false,fertilizer:null,harvest:0,health:false};
-    DAILY_LOGS[key].fertilizer=bulkFertType||'other';
+    DAILY_LOGS[key].fertilizer=getFertPills('bf-fert-pills')||'other';
     saved.push({plant,prev,key});
   }
   if(saved.length){
@@ -3501,7 +3501,7 @@ async function saveBulkFert(){
       },
       redo:async()=>{ for(const{plant,key}of saved){
         await supa.from('daily_logs').upsert(withUser({plant_id:plant._dbId,log_date:date,fertilized:true,fertilizer_type:getFertPills("bf-fert-pills"),fertilizer_notes:notes}),{onConflict:'plant_id,log_date'});
-        if(DAILY_LOGS[key]) DAILY_LOGS[key].fertilizer=bulkFertType||'other';
+        if(DAILY_LOGS[key]) DAILY_LOGS[key].fertilizer=getFertPills('bf-fert-pills')||'other';
       } render(); }
     });
   }
