@@ -1318,7 +1318,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         <!-- LEFT -->
         <div style="display:flex;flex-direction:column;gap:10px">
           <div class="log-field"><span class="log-field-lbl">Date</span><input type="date" id="aev-date" class="log-inp"/></div>
-          <div class="log-field"><span class="log-field-lbl">🧺 Harvest Count</span><input type="number" class="log-inp" id="aev-harvest" min="0" placeholder="# fruits/veg"/></div>
+          <div class="log-field"><span class="log-field-lbl">🧺 Harvest Count</span><input type="number" class="log-inp" id="aev-harvest" min="0" placeholder="# fruits/veg"/><span style="font-size:9px;color:var(--text-secondary);margin-top:2px">Set to 0 to remove harvest</span></div>
           <div class="log-field"><span class="log-field-lbl">Weight (<span id="aev-unit"></span>)</span><input type="number" class="log-inp" id="aev-weight" step="0.1" placeholder="weight"/></div>
           <div class="log-field">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
@@ -5185,16 +5185,22 @@ async function saveActivityEdit(){
     fertilizer_type:fert&&fertType?fertType:null,fertilizer_notes:fert?fertNotes:null,notes:notes||null,user_id:activeUserId()};
   if(logId) await supa.from('daily_logs').update(logRow).eq('id',logId);
   else await supa.from('daily_logs').upsert(withUser(logRow),{onConflict:'plant_id,log_date'});
-  if(qty>0||harvestId){
+
+  // Harvest: delete if qty cleared, update if qty changed, insert if new
+  if(harvestId && qty===0){
+    // User cleared the harvest count — remove it entirely
+    await supa.from('harvest_logs').delete().eq('id',harvestId);
+  } else if(qty>0){
     const hRow={plant_id:dbId,harvest_date:date,quantity:qty,weight_value:weight,weight_unit:weightUnit,quality_rating:quality,user_id:activeUserId()};
     if(harvestId) await supa.from('harvest_logs').update(hRow).eq('id',harvestId);
-    else if(qty>0) await supa.from('harvest_logs').insert(withUser(hRow));
+    else await supa.from('harvest_logs').insert(withUser(hRow));
   }
+
   const key=`${plantCode}|${date}`;
   if(!DAILY_LOGS[key]) DAILY_LOGS[key]={};
   DAILY_LOGS[key].watered=watered;
   DAILY_LOGS[key].fertilizer=fert&&fertType?fertType:(fert?'other':null);
-  if(qty>0) DAILY_LOGS[key].harvest=qty;
+  DAILY_LOGS[key].harvest=qty; // always sync — 0 clears the indicator
   closeActivityEdit();
   const plant=PLANTS.find(p=>p._dbId===dbId);
   const cat=plant?CATALOG.find(c=>c.id===plant.catalog_id)||{}:{};
