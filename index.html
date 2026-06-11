@@ -4873,15 +4873,15 @@ async function renderPlantDetailTab(tab, plant, cat){
       return `<div class="pd-health-item" style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;background:var(--card)">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
           <span style="font-size:16px">${icon}</span>
-          <strong style="font-size:12px">${typeLabel}</strong>
+          <strong style="font-size:12px;color:var(--text-body)">${typeLabel}</strong>
           <span class="pd-health-badge ${e.severity||'low'}">${e.severity||''}</span>
-          <span style="font-size:10px;color:#888;margin-left:auto">${d}</span>
+          <span style="font-size:10px;color:var(--text-secondary);margin-left:auto">${d}</span>
           <button onclick="editHealthEvent('${e.id}','${plant._dbId}','${plant.id}')"
-            style="background:var(--fbg);border:1px solid var(--border);border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer;color:#555">Edit</button>
+            class="note-edit-btn">Edit</button>
           <button onclick="deleteHealthEvent('${e.id}','${plant._dbId}','${plant.id}')"
-            style="background:#FEEDE8;border:1px solid #F5C0B0;border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer;color:#B33A1F">Delete</button>
+            class="inline-del-btn">Delete</button>
         </div>
-        ${e.notes?`<div style="font-size:11px;color:#555;line-height:1.5">${e.notes}</div>`:""}
+        ${e.notes?`<div style="font-size:11px;color:var(--text-body);line-height:1.5">${e.notes}</div>`:""}
         ${imgHtml}
       </div>`;
     }).join("")||`<div style="color:#aaa;font-size:11px;padding:8px 0">No health events recorded.</div>`;
