@@ -459,7 +459,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .bulk-chk{width:20px;height:20px;border-radius:50%;border:1.5px solid #888;
     display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
     font-size:11px;color:transparent;transition:all .12s}
-  .bulk-chk.on{background:var(--fbg);border-color:var(--nav);color:var(--nav)}
+  .bulk-chk.on{background:var(--nav);border-color:var(--nav);color:#fff}
   .bulk-plant-name{font-size:12px;color:var(--nav);flex:1}
   .bulk-harvest-inputs{display:flex;gap:6px;align-items:center}
   .bulk-harvest-inputs input{width:60px;border:1px solid var(--border);border-radius:5px;
@@ -655,6 +655,22 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .log-save-btn:hover{background:#256A47}
   .log-saved-badge{display:inline-block;font-size:9px;background:#E8F5EE;color:#2E7D4F;border:1px solid #A8D8B8;border-radius:4px;padding:2px 7px;margin-left:6px;vertical-align:middle}
 
+  /* ── Unified photo grouped layout ── */
+  .photo-date-card{background:var(--card);border:0.5px solid var(--border);border-radius:9px;margin-bottom:10px;overflow:hidden}
+  .photo-date-card-hdr{padding:8px 13px;background:var(--fbg);border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:8px}
+  .photo-source-row{padding:8px 13px;border-bottom:0.5px solid var(--border)}
+  .photo-source-row:last-child{border-bottom:none}
+  .photo-source-lbl-garden{display:inline-flex;align-items:center;gap:4px;background:rgba(46,134,193,.12);color:#2E86C1;font-size:9px;padding:2px 8px;border-radius:10px;font-weight:600;margin-bottom:6px;cursor:default}
+  .photo-source-lbl-plant{display:inline-flex;align-items:center;gap:4px;background:rgba(30,91,53,.1);color:var(--nav);font-size:9px;padding:2px 8px;border-radius:10px;font-weight:600;margin-bottom:6px;cursor:pointer}
+  .photo-source-lbl-plant:hover{background:rgba(30,91,53,.18)}
+  body.dark .photo-source-lbl-garden{background:rgba(91,168,214,.12);color:#5BA8D6}
+  body.dark .photo-source-lbl-plant{color:#4FA66A;background:rgba(79,166,106,.12)}
+  body.dark .photo-source-lbl-plant:hover{background:rgba(79,166,106,.2)}
+  .photos-toggle-pill{display:flex;border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--fbg)}
+  .ptp-opt{padding:4px 12px;font-size:10px;cursor:pointer;font-family:inherit;border:none;background:transparent;color:var(--text-secondary);font-weight:500}
+  .ptp-opt.active{background:var(--nav);color:#fff;border-radius:12px}
+  body.dark .ptp-opt.active{background:#4FA66A;color:#1A1E1A}
+
   /* ── Fertilizer multi-select pills ── */
   .fert-pills{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
   .fert-pill{background:var(--fbg);border:1px solid var(--border);border-radius:12px;padding:3px 10px;font-size:10px;cursor:pointer;font-family:'DM Mono',monospace;color:var(--text-body);transition:all .15s;user-select:none}
@@ -760,7 +776,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   body.dark .bulk-hdr{background:var(--fbg);color:var(--text-body);border-color:var(--border)}
   body.dark .bulk-cancel-btn{background:var(--fbg);border-color:var(--border);color:var(--text-body)}
   body.dark .bulk-type-btn{background:var(--fbg);border-color:var(--border);color:var(--text-body)}
-  body.dark .bulk-type-btn.on{border-color:var(--accent);color:var(--accent)}
+  body.dark .bulk-type-btn.on{border-color:#4FA66A;color:#4FA66A}
+  body.dark .bulk-chk.on{background:#4FA66A;border-color:#4FA66A;color:#1A1E1A}
+  body.dark .bulk-sel-btn{color:#4FA66A}
+  body.dark .bulk-plant-name{color:var(--text-body)}
   /* row menus */
   body.dark .row-menu{background:var(--card);border-color:var(--border)}
   body.dark .row-menu-item{color:var(--text-body)}
@@ -3593,7 +3612,7 @@ function bulkToggleAll(type){
   const allOn=allRows.every(r=>r.dataset.checked==='true');
   allRows.forEach(r=>{
     r.dataset.checked=allOn?'false':'true';
-    const c=r.querySelector('.bulk-check');
+    const c=r.querySelector('.bulk-chk');
     if(c){ c.classList.toggle('on',!allOn); c.textContent='✓'; }
   });
   updateBulkCounts(type);
@@ -3648,10 +3667,10 @@ function openBulkHealth(dateStr){
   document.querySelectorAll('[data-htype]').forEach(b=>b.classList.remove('on'));
   const list=document.getElementById('bhe-plant-list');
   list.innerHTML=plants.map(p=>`
-    <div class="bulk-plant-row" data-pid="${p.id}">
+    <div class="bulk-plant-row" data-pid="${p.id}" data-checked="true">
       <span style="background:var(--nav);color:#fff;font-size:9px;padding:2px 5px;border-radius:3px;font-family:'DM Mono',monospace;flex-shrink:0">${p.id}</span>
       <span class="bulk-plant-name">${p.type}</span>
-      <div class="bulk-chk on" onclick="bulkToggleRow(this,'health')" aria-label="toggle">✓</div>
+      <div class="bulk-chk on" onclick="bulkTogglePlant(this)" aria-label="toggle">✓</div>
     </div>`).join('');
   updateBulkCounts('health');
     _openOverlay('bulk-health-overlay');
@@ -3679,7 +3698,7 @@ async function saveBulkHealth(){
     const row={plant_id:plant._dbId, identified_date:date,
       event_type:eventType, name:eventType==='good'?'Good health note':eventType,
       severity:bulkHealthSev||'medium', notes};
-    const {error}=await supa.from('health_events').insert(row);
+    const {error}=await supa.from('health_events').insert(withUser(row));
     if(error) console.error('saveBulkHealth error:', error);
     const key=`${pid}|${date}`;
     if(!DAILY_LOGS[key]) DAILY_LOGS[key]={watered:false,fertilizer:null,harvest:0,health:false};
@@ -5306,167 +5325,168 @@ async function deletePlantPhotoGroup(dbId, plantCode, date){
   if(plant) await renderPlantDetailTab('photos',plant,cat);
 }
 
-// ── Garden Photos (main Photos tab) ───────────────────────────────────────────
-// ── Garden Photos — side-nav layout ──────────────────────────────────────────
+// -- Garden Photos - side-nav grouped-by-source layout --
+window._gardenPhotosData=[];
+window._plantPhotosData=[];
 window._photosData=[];
 window._photosSelYear=null;
 window._photosSelMonth=null;
 window._photosExpandedYears=new Set();
 window._photosShowUpload=false;
+window._photosShowAll=true;
 
 function _photosGroupByYM(photos){
   const byYM={};
   (photos||[]).forEach(p=>{
     const d=new Date(p.photo_date+'T00:00:00');
-    const yr=d.getFullYear(), mo=d.getMonth();
-    const key=`${yr}-${String(mo+1).padStart(2,'0')}`;
-    if(!byYM[key]) byYM[key]={yr,mo,label:d.toLocaleDateString('en-US',{month:'long'}),count:0,items:[]};
-    byYM[key].count++;
-    byYM[key].items.push(p);
+    const yr=d.getFullYear(),mo=d.getMonth();
+    const key=yr+'-'+String(mo+1).padStart(2,'0');
+    if(!byYM[key])byYM[key]={yr,mo,label:d.toLocaleDateString('en-US',{month:'long'}),count:0,items:[]};
+    byYM[key].count++;byYM[key].items.push(p);
   });
-  // Group into years
   const byYr={};
   Object.values(byYM).forEach(v=>{
-    if(!byYr[v.yr]) byYr[v.yr]={count:0,months:[]};
-    byYr[v.yr].count+=v.count;
-    byYr[v.yr].months.push(v);
+    if(!byYr[v.yr])byYr[v.yr]={count:0,months:[]};
+    byYr[v.yr].count+=v.count;byYr[v.yr].months.push(v);
   });
   Object.values(byYr).forEach(y=>y.months.sort((a,b)=>b.mo-a.mo));
   return {byYM,byYr};
 }
-
 function _photosRenderSidebar(byYr){
-  const sb=document.getElementById('photos-nav-sidebar'); if(!sb) return;
+  const sb=document.getElementById('photos-nav-sidebar');if(!sb)return;
   const years=Object.keys(byYr).map(Number).sort((a,b)=>b-a);
-  let h=`<div class="snav-header">Browse by date</div>`;
-  // "All photos" entry
   const allActive=window._photosSelYear===null;
-  h+=`<div class="snav-month ${allActive?'active':''}" onclick="photosSelectPeriod(null,null)" style="padding:6px 12px;font-weight:600">
-    All photos <span class="snav-count">${window._photosData.length}</span>
-  </div>`;
+  let h='<div class="snav-header">Browse by date</div>';
+  h+='<div class="snav-month '+(allActive?'active':'')+'" onclick="photosSelectPeriod(null,null)" style="padding:6px 12px;font-weight:600">All photos <span class="snav-count">'+window._photosData.length+'</span></div>';
   years.forEach(yr=>{
     const isExp=window._photosExpandedYears.has(yr);
-    h+=`<div class="snav-year" onclick="photosToggleYear(${yr})">
-      <i class="ti ti-chevron-${isExp?'down':'right'}" style="font-size:10px;opacity:.6"></i>
-      <span>${yr}</span>
-      <span class="snav-count" style="margin-left:auto">${byYr[yr].count}</span>
-    </div>`;
+    h+='<div class="snav-year" onclick="photosToggleYear('+yr+')">'
+      +'<i class="ti ti-chevron-'+(isExp?'down':'right')+'" style="font-size:10px;opacity:.6"></i>'
+      +'<span>'+yr+'</span><span class="snav-count" style="margin-left:auto">'+byYr[yr].count+'</span></div>';
     if(isExp){
       byYr[yr].months.forEach(m=>{
         const isSel=window._photosSelYear===yr&&window._photosSelMonth===m.mo;
-        h+=`<div class="snav-month ${isSel?'active':''}" onclick="photosSelectPeriod(${yr},${m.mo})">
-          <span>${m.label}</span><span class="snav-count">${m.count}</span>
-        </div>`;
+        h+='<div class="snav-month '+(isSel?'active':'')+'" onclick="photosSelectPeriod('+yr+','+m.mo+')">'
+          +'<span>'+m.label+'</span><span class="snav-count">'+m.count+'</span></div>';
       });
     }
   });
   sb.innerHTML=h;
 }
-
-function _photosRenderContent(byYM){
-  const cp=document.getElementById('photos-content-panel'); if(!cp) return;
-  const yr=window._photosSelYear, mo=window._photosSelMonth;
-  // Filter photos
-  let items=[];
-  if(yr===null){
-    items=window._photosData;
-  } else if(mo===null){
-    items=window._photosData.filter(p=>new Date(p.photo_date+'T00:00:00').getFullYear()===yr);
-  } else {
-    const key=`${yr}-${String(mo+1).padStart(2,'0')}`;
-    items=(byYM[key]?.items)||[];
-  }
-  // Group by date for display
-  const byDate={};
-  items.forEach(p=>{
-    if(!byDate[p.photo_date]) byDate[p.photo_date]={notes:p.notes,photos:[]};
-    byDate[p.photo_date].photos.push(p);
-  });
-  const title=yr===null?'All Photos':mo===null?`${yr}`:`${new Date(yr,mo,1).toLocaleDateString('en-US',{month:'long',year:'numeric'})}`;
-  const uploadHtml=window._photosShowUpload?`
-    <div class="pd-section" style="margin-bottom:12px">
-      <div class="pd-section-hdr" style="display:flex;align-items:center;justify-content:space-between">
-        Upload Photos
-        <button onclick="window._photosShowUpload=false;_photosRenderContent(_photosGroupByYM(window._photosData).byYM)"
-          style="background:transparent;border:none;font-size:14px;cursor:pointer;color:var(--text-secondary)">✕</button>
-      </div>
-      <div class="pd-section-body">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;margin-bottom:12px">
-          <div class="log-field"><span class="log-field-lbl">Date</span><input type="date" id="gp-date" class="log-inp" value="${isoDate(TODAY)}"/></div>
-          <div class="log-field"><span class="log-field-lbl">Caption (optional)</span><input type="text" id="gp-notes" class="log-inp" placeholder="Caption for these photos…"/></div>
-        </div>
-        <div class="plog-upload-zone" id="gp-zone"
-          ondragenter="plogZoneDrag('gp-zone',true)" ondragleave="plogZoneDrag('gp-zone',false)"
-          ondragover="event.preventDefault()" ondrop="plogZoneDrop('gp-zone',event)">
-          <input type="file" id="gp-files" accept="image/*" multiple onchange="plogPreview('gp-zone','gp-preview',this)"/>
-          <div id="gp-zone-label" style="pointer-events:none">
-            <div style="font-size:28px;margin-bottom:6px">📷</div>
-            <div style="font-size:12px;font-weight:500;color:var(--text-body)">Click or drag photos here</div>
-            <div style="font-size:10px;color:var(--text-secondary);margin-top:3px">Supports multiple files · JPG, PNG, HEIC</div>
-          </div>
-          <div id="gp-preview" style="display:none;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px"></div>
-        </div>
-        <button class="log-save-btn" style="margin-top:10px" onclick="saveGardenPhotos()">Save Photos</button>
-      </div>
-    </div>`:'';
-  const histHtml=Object.entries(byDate).sort((a,b)=>b[0].localeCompare(a[0])).map(([date,g])=>`
-    <div class="plog-date-group">
-      <div class="plog-date-hdr">
-        <span class="plog-date-lbl">${new Date(date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"long",day:"numeric",year:"numeric"})}</span>
-        <button class="inline-del-btn" onclick="deleteGardenPhotoGroup('${date}')">Delete all</button>
-      </div>
-      ${g.notes?`<div class="plog-date-notes">${g.notes}</div>`:""}
-      <div class="plog-photo-grid">${g.photos.map(p=>`
-        <div class="plog-photo-item">
-          <img src="${p.photo_url}" onclick="openPhotoLightbox('${p.photo_url}')" loading="lazy"/>
-          <button class="plog-photo-del" onclick="deleteGardenPhoto('${p.id}','${p.photo_url}')">✕</button>
-        </div>`).join("")}
-      </div>
-    </div>`).join("")||`<div style="color:var(--text-secondary);font-size:11px;padding:20px 0">No photos for this period.</div>`;
-  cp.innerHTML=`
-    <div class="snav-content-hdr">
-      <span style="font-size:14px;font-weight:600;color:var(--nav-text,var(--nav))">${title}</span>
-      <span style="font-size:10px;color:var(--text-secondary)">${items.length} photo${items.length!==1?'s':''}</span>
-      <button onclick="window._photosShowUpload=!window._photosShowUpload;_photosRenderContent(_photosGroupByYM(window._photosData).byYM)"
-        style="margin-left:auto;background:var(--nav);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:600">
-        📷 Upload
-      </button>
-    </div>
-    <div class="snav-content-body">
-      ${uploadHtml}
-      ${histHtml}
-    </div>`;
+function _photosGetPeriodItems(yr,mo){
+  const filter=arr=>{
+    if(yr===null)return arr;
+    return arr.filter(p=>{
+      const d=new Date(p.photo_date+'T00:00:00');
+      return mo===null?d.getFullYear()===yr:d.getFullYear()===yr&&d.getMonth()===mo;
+    });
+  };
+  return{garden:filter(window._gardenPhotosData),plants:filter(window._plantPhotosData)};
 }
-
-async function renderGardenPhotos(){
-  const {data:photos}=await supa.from('garden_photos').select('*').order('photo_date',{ascending:false}).order('created_at',{ascending:true});
-  window._photosData=photos||[];
-  const {byYM,byYr}=_photosGroupByYM(window._photosData);
-  // Set default selection: most recent month
-  if(window._photosSelYear===null&&window._photosData.length>0){
-    const latest=window._photosData[0];
-    const d=new Date(latest.photo_date+'T00:00:00');
-    window._photosSelYear=d.getFullYear();
-    window._photosSelMonth=d.getMonth();
+function _photosRenderContent(){
+  const cp=document.getElementById('photos-content-panel');if(!cp)return;
+  const yr=window._photosSelYear,mo=window._photosSelMonth;
+  const{garden,plants}=_photosGetPeriodItems(yr,mo);
+  const showAll=window._photosShowAll;
+  const totalCount=showAll?(garden.length+plants.length):garden.length;
+  const title=yr===null?'All Photos':mo===null?String(yr):new Date(yr,mo,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  const uploadHtml=window._photosShowUpload?buildPhotoUploadForm():'';
+  const byDate={};
+  garden.forEach(p=>{if(!byDate[p.photo_date])byDate[p.photo_date]={garden:[],plants:{}};byDate[p.photo_date].garden.push(p);});
+  if(showAll){
+    plants.forEach(p=>{
+      if(!byDate[p.photo_date])byDate[p.photo_date]={garden:[],plants:{}};
+      const code=p._plantCode||'?';
+      if(!byDate[p.photo_date].plants[code])byDate[p.photo_date].plants[code]={name:p._plantName||code,photos:[]};
+      byDate[p.photo_date].plants[code].photos.push(p);
+    });
   }
-  // Ensure the selected year is expanded
-  if(window._photosSelYear) window._photosExpandedYears.add(window._photosSelYear);
+  const dateEntries=Object.entries(byDate).sort((a,b)=>b[0].localeCompare(a[0]));
+  let histHtml='';
+  if(dateEntries.length){
+    dateEntries.forEach(([date,g])=>{
+      const dateLabel=new Date(date+'T00:00:00').toLocaleDateString('en-US',{weekday:'short',month:'long',day:'numeric',year:'numeric'});
+      const dayTotal=g.garden.length+Object.values(g.plants).reduce((s,p)=>s+p.photos.length,0);
+      let gardenRow='';
+      if(g.garden.length){
+        const imgs=g.garden.map(p=>'<div class="plog-photo-item"><img src="'+p.photo_url+'" onclick="openPhotoLightbox(\''+p.photo_url+'\')" loading="lazy"/><button class="plog-photo-del" onclick="deleteGardenPhoto(\''+p.id+'\',\''+p.photo_url+'\')">&#10005;</button></div>').join('');
+        const cap=g.garden[0]?.notes?'<div class="plog-date-notes" style="margin-top:5px">'+g.garden[0].notes+'</div>':'';
+        gardenRow='<div class="photo-source-row"><span class="photo-source-lbl-garden">&#127968; Garden &nbsp;&middot;&nbsp; '+g.garden.length+' photo'+(g.garden.length!==1?'s':'')+'</span><div class="plog-photo-grid">'+imgs+'</div>'+cap+'</div>';
+      }
+      let plantRows='';
+      Object.entries(g.plants).forEach(([code,pg])=>{
+        const imgs=pg.photos.map(p=>'<div class="plog-photo-item"><img src="'+p.photo_url+'" onclick="openPhotoLightbox(\''+p.photo_url+'\')" loading="lazy"/><button class="plog-photo-del" onclick="deletePlantPhotoFromMain(\''+p.id+'\',\''+p.photo_url+'\')">&#10005;</button></div>').join('');
+        plantRows+='<div class="photo-source-row"><span class="photo-source-lbl-plant"><span style="font-family:\'DM Mono\',monospace;font-weight:700">'+code+'</span> &mdash; '+pg.name+' &nbsp;&middot;&nbsp; '+pg.photos.length+' photo'+(pg.photos.length!==1?'s':'')+'</span><div class="plog-photo-grid">'+imgs+'</div></div>';
+      });
+      const delBtn=g.garden.length?'<button class="inline-del-btn" style="margin-left:auto" onclick="deleteGardenPhotoGroup(\''+date+'\')">Delete garden photos</button>':'';
+      histHtml+='<div class="photo-date-card"><div class="photo-date-card-hdr"><span style="font-size:11px;font-weight:600;color:var(--text-body)">'+dateLabel+'</span><span style="font-size:10px;color:var(--text-secondary)">'+dayTotal+' photo'+(dayTotal!==1?'s':'')+'</span>'+delBtn+'</div>'+gardenRow+plantRows+'</div>';
+    });
+  }else{
+    histHtml='<div style="color:var(--text-secondary);font-size:11px;padding:20px 0">No photos for this period.</div>';
+  }
+  const toggleHtml='<div class="photos-toggle-pill" style="margin-left:10px">'
+    +'<button class="ptp-opt '+((!showAll)?'active':'')+'" onclick="photosToggleSource(false)">Garden only</button>'
+    +'<button class="ptp-opt '+(showAll?'active':'')+'" onclick="photosToggleSource(true)">All photos</button>'
+    +'</div>';
+  cp.innerHTML='<div class="snav-content-hdr"><span style="font-size:14px;font-weight:600;color:var(--nav-text,var(--nav))">'+title+'</span><span style="font-size:10px;color:var(--text-secondary)">'+totalCount+' photo'+(totalCount!==1?'s':'')+'</span>'+toggleHtml+'<button onclick="window._photosShowUpload=!window._photosShowUpload;_photosRenderContent()" style="margin-left:auto;background:var(--nav);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:600">&#128247; Upload</button></div><div class="snav-content-body">'+uploadHtml+histHtml+'</div>';
+}
+function buildPhotoUploadForm(){
+  return '<div class="pd-section" style="margin-bottom:12px">'
+    +'<div class="pd-section-hdr" style="display:flex;align-items:center;justify-content:space-between">Upload Garden Photos'
+    +'<button onclick="window._photosShowUpload=false;_photosRenderContent()" style="background:transparent;border:none;font-size:14px;cursor:pointer;color:var(--text-secondary)">&#10005;</button></div>'
+    +'<div class="pd-section-body">'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;margin-bottom:12px">'
+    +'<div class="log-field"><span class="log-field-lbl">Date</span><input type="date" id="gp-date" class="log-inp" value="'+isoDate(TODAY)+'"/></div>'
+    +'<div class="log-field"><span class="log-field-lbl">Caption (optional)</span><input type="text" id="gp-notes" class="log-inp" placeholder="Caption for these photos\u2026"/></div>'
+    +'</div>'
+    +'<div class="plog-upload-zone" id="gp-zone" ondragenter="plogZoneDrag(\'gp-zone\',true)" ondragleave="plogZoneDrag(\'gp-zone\',false)" ondragover="event.preventDefault()" ondrop="plogZoneDrop(\'gp-zone\',event)">'
+    +'<input type="file" id="gp-files" accept="image/*" multiple onchange="plogPreview(\'gp-zone\',\'gp-preview\',this)"/>'
+    +'<div id="gp-zone-label" style="pointer-events:none"><div style="font-size:28px;margin-bottom:6px">&#128247;</div><div style="font-size:12px;font-weight:500;color:var(--text-body)">Click or drag photos here</div><div style="font-size:10px;color:var(--text-secondary);margin-top:3px">Supports multiple files \u00b7 JPG, PNG, HEIC</div></div>'
+    +'<div id="gp-preview" style="display:none;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px"></div>'
+    +'</div>'
+    +'<button class="log-save-btn" style="margin-top:10px" onclick="saveGardenPhotos()">Save Photos</button>'
+    +'</div></div>';
+}
+async function renderGardenPhotos(){
+  const[{data:gardenPhotos},{data:plantPhotos}]=await Promise.all([
+    supa.from('garden_photos').select('*').order('photo_date',{ascending:false}).order('created_at',{ascending:true}),
+    supa.from('plant_photos').select('*').order('photo_date',{ascending:false}).order('created_at',{ascending:true})
+  ]);
+  window._gardenPhotosData=(gardenPhotos||[]);
+  window._plantPhotosData=(plantPhotos||[]).map(p=>{
+    const plant=PLANTS.find(pl=>pl._dbId===p.plant_id);
+    return{...p,_plantCode:plant?.id||'?',_plantName:plant?.type||'Plant'};
+  });
+  window._photosData=[...window._gardenPhotosData,...window._plantPhotosData];
+  const{byYr}=_photosGroupByYM(window._photosData);
+  if(window._photosSelYear===null&&window._photosData.length>0){
+    const sorted=[...window._photosData].sort((a,b)=>b.photo_date.localeCompare(a.photo_date));
+    const d=new Date(sorted[0].photo_date+'T00:00:00');
+    window._photosSelYear=d.getFullYear();window._photosSelMonth=d.getMonth();
+  }
+  if(window._photosSelYear)window._photosExpandedYears.add(window._photosSelYear);
   _photosRenderSidebar(byYr);
-  _photosRenderContent(byYM);
+  _photosRenderContent();
 }
 function photosToggleYear(yr){
-  if(window._photosExpandedYears.has(yr)) window._photosExpandedYears.delete(yr);
+  if(window._photosExpandedYears.has(yr))window._photosExpandedYears.delete(yr);
   else window._photosExpandedYears.add(yr);
-  const {byYr}=_photosGroupByYM(window._photosData);
-  _photosRenderSidebar(byYr);
+  _photosRenderSidebar(_photosGroupByYM(window._photosData).byYr);
 }
 function photosSelectPeriod(yr,mo){
-  window._photosSelYear=yr;
-  window._photosSelMonth=mo;
-  const {byYM,byYr}=_photosGroupByYM(window._photosData);
-  _photosRenderSidebar(byYr);
-  _photosRenderContent(byYM);
+  window._photosSelYear=yr;window._photosSelMonth=mo;
+  _photosRenderSidebar(_photosGroupByYM(window._photosData).byYr);
+  _photosRenderContent();
 }
+function photosToggleSource(showAll){
+  window._photosShowAll=showAll;_photosRenderContent();
+}
+async function deletePlantPhotoFromMain(photoId,photoUrl){
+  if(!confirm('Delete this photo?'))return;
+  await supa.from('plant_photos').delete().eq('id',photoId);
+  renderGardenPhotos();
+}
+
 async function saveGardenPhotos(){
   const date=document.getElementById('gp-date')?.value||isoDate(TODAY);
   const notes=document.getElementById('gp-notes')?.value.trim()||null;
