@@ -954,6 +954,37 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
             <div style="width:12px;height:12px;border-radius:50%;background:#fff"></div>
           </div>
         </div>
+        <!-- Sub-toggles: individual activity types — only visible when showIcons is true -->
+        <div id="icon-subtoggle-group" style="border-left:2px solid var(--border);margin:0 14px 2px 28px;padding-left:8px">
+          <div onclick="toggleIconType('water')" style="padding:5px 6px;font-size:10px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:7px;font-family:'DM Mono',monospace;border-radius:5px"
+            onmouseover="this.style.background='var(--fbg)'" onmouseout="this.style.background=''">
+            💧 <span>Watering</span>
+            <div id="icontoggle-water" style="margin-left:auto;width:24px;height:13px;border-radius:7px;background:#2E7D4F;display:flex;align-items:center;padding:2px;justify-content:flex-end;transition:background .15s;flex-shrink:0">
+              <div style="width:9px;height:9px;border-radius:50%;background:#fff"></div>
+            </div>
+          </div>
+          <div onclick="toggleIconType('fert')" style="padding:5px 6px;font-size:10px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:7px;font-family:'DM Mono',monospace;border-radius:5px"
+            onmouseover="this.style.background='var(--fbg)'" onmouseout="this.style.background=''">
+            🍗 <span>Fertilizing</span>
+            <div id="icontoggle-fert" style="margin-left:auto;width:24px;height:13px;border-radius:7px;background:#2E7D4F;display:flex;align-items:center;padding:2px;justify-content:flex-end;transition:background .15s;flex-shrink:0">
+              <div style="width:9px;height:9px;border-radius:50%;background:#fff"></div>
+            </div>
+          </div>
+          <div onclick="toggleIconType('harvest')" style="padding:5px 6px;font-size:10px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:7px;font-family:'DM Mono',monospace;border-radius:5px"
+            onmouseover="this.style.background='var(--fbg)'" onmouseout="this.style.background=''">
+            🧺 <span>Harvesting</span>
+            <div id="icontoggle-harvest" style="margin-left:auto;width:24px;height:13px;border-radius:7px;background:#2E7D4F;display:flex;align-items:center;padding:2px;justify-content:flex-end;transition:background .15s;flex-shrink:0">
+              <div style="width:9px;height:9px;border-radius:50%;background:#fff"></div>
+            </div>
+          </div>
+          <div onclick="toggleIconType('health')" style="padding:5px 6px;font-size:10px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:7px;font-family:'DM Mono',monospace;border-radius:5px"
+            onmouseover="this.style.background='var(--fbg)'" onmouseout="this.style.background=''">
+            🐞 <span>Health events</span>
+            <div id="icontoggle-health" style="margin-left:auto;width:24px;height:13px;border-radius:7px;background:#2E7D4F;display:flex;align-items:center;padding:2px;justify-content:flex-end;transition:background .15s;flex-shrink:0">
+              <div style="width:9px;height:9px;border-radius:50%;background:#fff"></div>
+            </div>
+          </div>
+        </div>
         <div style="padding:2px 14px 7px;font-size:9px;color:var(--text-secondary);line-height:1.4">Hiding icons compresses rows for a denser view</div>
       </div>
     </div>
@@ -1546,6 +1577,10 @@ const ZOOM_CFG = {
 let zoom         = "week";
 let showHarvest  = false;
 let showIcons    = true;
+let showIconWater   = true;
+let showIconFert    = true;
+let showIconHarvest = true;
+let showIconHealth  = true;
 let showDates    = false;
 let filterFlags = {active:true, finished:true, archived:false}; // multi-select filter
 let timelineSearch = ""; // text search across plant name, id, family, subtype
@@ -2085,12 +2120,12 @@ function makeTimeline(plant,cols,bounds,W,thin,todayPx,bg){
       // Above bar: water + fert
       const hasBoth=log.watered&&log.fertilizer;
       const offset=hasBoth?6:0;
-      if(log.watered){
+      if(log.watered && showIconWater){
         const el=document.createElement("span");el.className="day-indicator";
         el.textContent="💧";el.style.left=(centerPx-offset)+"px";
         area.appendChild(el);
       }
-      if(log.fertilizer){
+      if(log.fertilizer && showIconFert){
         const el=document.createElement("span");el.className="day-indicator";
         el.textContent="🍗";el.style.left=(centerPx+offset)+"px";
         area.appendChild(el);
@@ -2098,12 +2133,12 @@ function makeTimeline(plant,cols,bounds,W,thin,todayPx,bg){
       // Below bar: harvest + health
       const hasBothBelow=log.harvest>0&&log.health;
       const offsetBelow=hasBothBelow?6:0;
-      if(log.harvest>0){
+      if(log.harvest>0 && showIconHarvest){
         const el=document.createElement("span");el.className="day-indicator-below";
         el.textContent="🧺";el.style.left=(centerPx-offsetBelow)+"px";
         area.appendChild(el);
       }
-      if(log.health){
+      if(log.health && showIconHealth){
         const el=document.createElement("span");el.className="day-indicator-below";
         el.textContent="🐞";el.style.left=(centerPx+offsetBelow)+"px";
         area.appendChild(el);
@@ -2910,11 +2945,34 @@ function toggleIcons(){
   showIcons=!showIcons;
   const t=document.getElementById('icons-dd-toggle');
   if(t){ t.style.background=showIcons?'#2E7D4F':'#C4C0B8'; t.style.justifyContent=showIcons?'flex-end':'flex-start'; }
-  // Apply row height via CSS variable on #main
+  const sub=document.getElementById('icon-subtoggle-group');
+  if(sub) sub.style.display=showIcons?'block':'none';
   const main=document.getElementById('main');
   if(main){
     main.style.setProperty('--rh', showIcons?'58px':'26px');
     main.style.setProperty('--bht', showIcons?'20px':'10px');
+  }
+  render();
+}
+
+function toggleIconType(type){
+  const onColor='#2E7D4F', offColor='#C4C0B8';
+  if(type==='water'){
+    showIconWater=!showIconWater;
+    const t=document.getElementById('icontoggle-water');
+    if(t){t.style.background=showIconWater?onColor:offColor;t.style.justifyContent=showIconWater?'flex-end':'flex-start';}
+  } else if(type==='fert'){
+    showIconFert=!showIconFert;
+    const t=document.getElementById('icontoggle-fert');
+    if(t){t.style.background=showIconFert?onColor:offColor;t.style.justifyContent=showIconFert?'flex-end':'flex-start';}
+  } else if(type==='harvest'){
+    showIconHarvest=!showIconHarvest;
+    const t=document.getElementById('icontoggle-harvest');
+    if(t){t.style.background=showIconHarvest?onColor:offColor;t.style.justifyContent=showIconHarvest?'flex-end':'flex-start';}
+  } else if(type==='health'){
+    showIconHealth=!showIconHealth;
+    const t=document.getElementById('icontoggle-health');
+    if(t){t.style.background=showIconHealth?onColor:offColor;t.style.justifyContent=showIconHealth?'flex-end':'flex-start';}
   }
   render();
 }
