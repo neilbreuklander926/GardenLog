@@ -1351,6 +1351,54 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     </div>
   </div>
 </div>
+<!-- Health Event Edit Panel -->
+<div id="health-edit-overlay" onclick="if(event.target.id==='health-edit-overlay')closeHealthEdit()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
+  <div class="bulk-sheet" style="max-width:500px">
+    <div class="bulk-hdr">
+      <span style="font-size:20px">🐞</span>
+      <span class="bulk-hdr-title">Edit Health Event</span>
+      <span class="bulk-hdr-date" id="hee-date-lbl"></span>
+    </div>
+    <div class="bulk-body">
+      <input type="hidden" id="hee-id"/>
+      <input type="hidden" id="hee-dbid"/>
+      <input type="hidden" id="hee-plantcode"/>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-bottom:12px">
+        <div class="log-field">
+          <span class="log-field-lbl">Date</span>
+          <input type="date" id="hee-date" class="log-inp"/>
+        </div>
+        <div class="log-field">
+          <span class="log-field-lbl">Category</span>
+          <select class="log-select" id="hee-type">
+            <option value="">— select —</option>
+            <option value="pest">🐛 Pest</option>
+            <option value="disease">🍂 Disease</option>
+            <option value="other">⚠️ Other Issue</option>
+            <option value="good">✅ Good Health</option>
+          </select>
+        </div>
+        <div class="log-field">
+          <span class="log-field-lbl">Severity</span>
+          <select class="log-select" id="hee-severity">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+          </select>
+        </div>
+      </div>
+      <div class="log-field">
+        <span class="log-field-lbl">Notes / Description</span>
+        <textarea id="hee-notes" class="log-inp" rows="4" placeholder="Describe symptoms, treatment applied, or observations…"></textarea>
+      </div>
+    </div>
+    <div class="bulk-footer">
+      <button class="bulk-cancel-btn" onclick="closeHealthEdit()">Cancel</button>
+      <button class="bulk-save-btn" style="background:#2E7D4F" onclick="saveHealthEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
 <!-- Activity Edit Panel -->
 <div id="activity-edit-overlay" onclick="if(event.target.id==='activity-edit-overlay')closeActivityEdit()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
   <div class="bulk-sheet" style="max-width:560px">
@@ -5036,17 +5084,38 @@ async function saveHealthEvent(dbId, plantCode){
 function editHealthEvent(eventId, dbId, plantCode){
   supa.from('health_events').select('*').eq('id',eventId).single().then(({data:e})=>{
     if(!e) return;
-    document.getElementById('he-edit-id').value=e.id;
-    document.getElementById('he-date').value=e.identified_date||'';
-    document.getElementById('he-type').value=e.event_type||'';
-    document.getElementById('he-severity').value=e.severity||'low';
-    document.getElementById('he-notes').value=e.notes||'';
-    document.getElementById('he-form-hdr').textContent='Edit Health Event';
-    document.getElementById('he-save-btn').textContent='Update Health Event';
-    document.getElementById('he-cancel-btn').style.display='inline-block';
-    // Scroll form into view
-    document.getElementById('he-date')?.closest('.pd-section')?.scrollIntoView({behavior:'smooth',block:'start'});
+    document.getElementById('hee-id').value=e.id;
+    document.getElementById('hee-dbid').value=dbId;
+    document.getElementById('hee-plantcode').value=plantCode;
+    document.getElementById('hee-date').value=e.identified_date||'';
+    document.getElementById('hee-date-lbl').textContent=
+      e.identified_date?new Date(e.identified_date+'T00:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}):'';
+    document.getElementById('hee-type').value=e.event_type||'';
+    document.getElementById('hee-severity').value=e.severity||'low';
+    document.getElementById('hee-notes').value=e.notes||'';
+    const ov=document.getElementById('health-edit-overlay');
+    ov.style.display='flex';
   });
+}
+function closeHealthEdit(){
+  document.getElementById('health-edit-overlay').style.display='none';
+}
+async function saveHealthEdit(){
+  const id=document.getElementById('hee-id').value;
+  const dbId=parseInt(document.getElementById('hee-dbid').value);
+  const plantCode=document.getElementById('hee-plantcode').value;
+  const date=document.getElementById('hee-date').value;
+  const type=document.getElementById('hee-type').value;
+  const severity=document.getElementById('hee-severity').value;
+  const notes=document.getElementById('hee-notes').value.trim()||null;
+  if(!type){ alert('Please select a category.'); return; }
+  await supa.from('health_events').update({
+    identified_date:date, event_type:type, severity, notes
+  }).eq('id',id);
+  closeHealthEdit();
+  const plant=PLANTS.find(p=>p._dbId===dbId);
+  const cat=plant?CATALOG.find(c=>c.id===plant.catalog_id)||{}:{};
+  if(plant) await renderPlantDetailTab('health',plant,cat);
 }
 
 function cancelHealthEdit(){
@@ -5058,7 +5127,7 @@ function cancelHealthEdit(){
   document.getElementById('he-form-hdr').textContent='Log Health Event';
   document.getElementById('he-save-btn').textContent='Save Health Event';
   document.getElementById('he-cancel-btn').style.display='none';
-  hePhotoPreview(null); // clear preview
+  hePhotoPreview(null);
 }
 
 async function deleteHealthEvent(eventId, dbId, plantCode){
