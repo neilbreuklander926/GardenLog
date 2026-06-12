@@ -235,7 +235,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     font-size:10px;cursor:pointer;user-select:none}
   .filter-opt:hover{background:var(--fbg)}
   .filter-opt input{cursor:pointer;margin:0;accent-color:var(--nav)}
-  .filter-opt-label{color:#333}
+  .filter-opt-label{color:var(--text-body)}
 
   /* Row actions menu (three-dot) */
   .row-menu-btn{
@@ -1392,6 +1392,26 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         <span class="log-field-lbl">Notes / Description</span>
         <textarea id="hee-notes" class="log-inp" rows="4" placeholder="Describe symptoms, treatment applied, or observations…"></textarea>
       </div>
+      <div class="log-field" style="margin-top:12px">
+        <span class="log-field-lbl">Photo (optional)</span>
+        <!-- Current photo preview -->
+        <div id="hee-current-photo" style="display:none;margin-bottom:8px">
+          <img id="hee-current-photo-img" style="max-width:100%;max-height:140px;border-radius:7px;border:1px solid var(--border);display:block;margin-bottom:4px"/>
+          <button onclick="removeHealthEditPhoto()" style="background:transparent;border:none;font-size:10px;color:var(--danger);cursor:pointer;padding:0;font-family:inherit">✕ Remove current photo</button>
+        </div>
+        <div class="he-photo-zone" id="hee-photo-zone"
+          ondragenter="heeZoneDrag(true)" ondragleave="heeZoneDrag(false)"
+          ondragover="event.preventDefault()" ondrop="heeZoneDrop(event)">
+          <input type="file" id="hee-photo" accept="image/*,capture=camera"
+            onchange="heePhotoPreview(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%"/>
+          <div id="hee-photo-label" style="font-size:11px;color:var(--text-secondary);pointer-events:none">
+            <div style="font-size:22px;margin-bottom:4px">📷</div>
+            <div>Click or drag a new photo here</div>
+          </div>
+          <img id="hee-photo-preview" style="max-width:100%;max-height:120px;border-radius:6px;margin-top:8px;border:1px solid var(--border);display:none"/>
+        </div>
+      </div>
+      <input type="hidden" id="hee-existing-photo-url"/>
     </div>
     <div class="bulk-footer">
       <button class="bulk-cancel-btn" onclick="closeHealthEdit()">Cancel</button>
@@ -5093,12 +5113,53 @@ function editHealthEvent(eventId, dbId, plantCode){
     document.getElementById('hee-type').value=e.event_type||'';
     document.getElementById('hee-severity').value=e.severity||'low';
     document.getElementById('hee-notes').value=e.notes||'';
-    const ov=document.getElementById('health-edit-overlay');
-    ov.style.display='flex';
+    // Photo
+    document.getElementById('hee-existing-photo-url').value=e.photo_url||'';
+    document.getElementById('hee-photo').value='';
+    const prev=document.getElementById('hee-photo-preview');
+    if(prev){prev.src='';prev.style.display='none';}
+    const label=document.getElementById('hee-photo-label');
+    if(label) label.style.display='block';
+    const curDiv=document.getElementById('hee-current-photo');
+    const curImg=document.getElementById('hee-current-photo-img');
+    if(e.photo_url&&curDiv&&curImg){
+      curImg.src=e.photo_url; curDiv.style.display='block';
+    } else if(curDiv){
+      curDiv.style.display='none';
+    }
+    document.getElementById('health-edit-overlay').style.display='flex';
   });
 }
 function closeHealthEdit(){
   document.getElementById('health-edit-overlay').style.display='none';
+}
+function removeHealthEditPhoto(){
+  document.getElementById('hee-existing-photo-url').value='__remove__';
+  const curDiv=document.getElementById('hee-current-photo');
+  if(curDiv) curDiv.style.display='none';
+}
+function heeZoneDrag(over){
+  document.getElementById('hee-photo-zone')?.classList.toggle('drag-over',over);
+}
+function heeZoneDrop(e){
+  e.preventDefault(); heeZoneDrag(false);
+  const file=e.dataTransfer?.files?.[0];
+  if(file&&file.type.startsWith('image/')){
+    const dt=new DataTransfer(); dt.items.add(file);
+    const inp=document.getElementById('hee-photo');
+    if(inp){inp.files=dt.files; heePhotoPreview(inp);}
+  }
+}
+function heePhotoPreview(inp){
+  const file=inp?.files?.[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const prev=document.getElementById('hee-photo-preview');
+    const label=document.getElementById('hee-photo-label');
+    if(prev){prev.src=ev.target.result;prev.style.display='block';}
+    if(label) label.style.display='none';
+  };
+  reader.readAsDataURL(file);
 }
 async function saveHealthEdit(){
   const id=document.getElementById('hee-id').value;
@@ -5108,10 +5169,25 @@ async function saveHealthEdit(){
   const type=document.getElementById('hee-type').value;
   const severity=document.getElementById('hee-severity').value;
   const notes=document.getElementById('hee-notes').value.trim()||null;
+  const existingUrl=document.getElementById('hee-existing-photo-url').value;
+  const photoFile=document.getElementById('hee-photo')?.files?.[0]||null;
   if(!type){ alert('Please select a category.'); return; }
-  await supa.from('health_events').update({
-    identified_date:date, event_type:type, severity, notes
-  }).eq('id',id);
+  const row={identified_date:date, event_type:type, severity, notes,
+    name:type==='good'?'Good health note':type};
+  // Handle photo
+  if(photoFile){
+    const ext=photoFile.name.split('.').pop();
+    const path=`health/${dbId}/${Date.now()}.${ext}`;
+    const{error:upErr}=await supa.storage.from('garden-photos').upload(path,photoFile,{upsert:true});
+    if(!upErr){
+      const{data:urlData}=supa.storage.from('garden-photos').getPublicUrl(path);
+      row.photo_url=urlData?.publicUrl||null;
+    }
+  } else if(existingUrl==='__remove__'){
+    row.photo_url=null;
+  }
+  // Otherwise keep existing photo (don't set photo_url in update, so it stays unchanged)
+  await supa.from('health_events').update(row).eq('id',id);
   closeHealthEdit();
   const plant=PLANTS.find(p=>p._dbId===dbId);
   const cat=plant?CATALOG.find(c=>c.id===plant.catalog_id)||{}:{};
