@@ -678,6 +678,20 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .fert-pill.on{background:var(--nav);color:#fff;border-color:var(--nav)}
   body.dark .fert-pill.on{background:#4FA66A;color:#1A1E1A;border-color:#4FA66A}
 
+  /* ── Timeline tooltip (Concept A) ── */
+  #tl-tooltip{position:fixed;background:#2D342D;border:1px solid #4FA66A;border-radius:10px;
+    box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:9999;pointer-events:none;
+    min-width:200px;max-width:280px;display:none;animation:tt-fade .12s ease-out}
+  @keyframes tt-fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+  body:not(.dark) #tl-tooltip{background:#fff;border-color:#1E5B35;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+  .tl-tt-hdr{background:var(--fbg);border-radius:9px 9px 0 0;padding:8px 12px;display:flex;align-items:center;gap:7px;border-bottom:1px solid var(--border)}
+  .tl-tt-body{padding:10px 12px}
+  .tl-tt-row{display:flex;justify-content:space-between;align-items:flex-start;padding:2px 0;font-size:10px;gap:8px}
+  .tl-tt-lbl{color:var(--text-secondary);flex-shrink:0}
+  .tl-tt-val{color:var(--text-body);font-weight:500;font-family:'DM Mono',monospace;font-size:10px;text-align:right}
+  .tl-tt-phase-bar{height:5px;border-radius:3px;margin:5px 0 8px;display:flex;overflow:hidden;gap:1px}
+  .tl-tt-div{height:0.5px;background:var(--border);margin:6px 0}
+
   /* ── Side-nav sidebar (Notes & Photos) ── */
   .snav-header{padding:8px 12px 5px;font-size:8px;font-weight:700;color:var(--text-secondary);letter-spacing:.08em;text-transform:uppercase;border-bottom:0.5px solid var(--border);position:sticky;top:0;background:var(--fbg);z-index:2}
   .snav-year{display:flex;align-items:center;gap:6px;padding:7px 12px;cursor:pointer;font-size:12px;font-weight:700;color:var(--nav);background:var(--fbg);border-bottom:0.5px solid var(--border);user-select:none}
@@ -1351,6 +1365,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     </div>
   </div>
 </div>
+<!-- Timeline tooltip -->
+<div id="tl-tooltip"></div>
 <!-- Health Event Edit Panel -->
 <div id="health-edit-overlay" onclick="if(event.target.id==='health-edit-overlay')closeHealthEdit()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
   <div class="bulk-sheet" style="max-width:500px">
@@ -2044,6 +2060,10 @@ function makeTimeline(plant,cols,bounds,W,thin,todayPx,bg){
     background:${document.body.classList.contains('dark')?'#303830':'#D8D3CC'};border-radius:${radius};
     z-index:1;box-shadow:0 1px 2px rgba(0,0,0,.08)`;
   area.appendChild(grayBar);
+  // Bar tooltip — hover anywhere on the bar
+  grayBar.addEventListener('mouseenter',e=>{_tlTTShow(_tlBarTTHtml(plant),e);});
+  grayBar.addEventListener('mousemove',e=>{_tlTTPos(e);});
+  grayBar.addEventListener('mouseleave',()=>{_tlTTHide();});
 
   // ── IDEAL cycle — thin segmented band floating ABOVE the actual bar ──
   if(zoom==="season" && showIdealCycle){
@@ -2191,11 +2211,17 @@ function makeTimeline(plant,cols,bounds,W,thin,todayPx,bg){
       if(log.watered && showIconWater){
         const el=document.createElement("span");el.className="day-indicator";
         el.textContent="💧";el.style.left=(centerPx-offset)+"px";
+        el.addEventListener('mouseenter',e=>{_tlTTShow(_tlIconTTHtml(log,'water',ds),e);e.stopPropagation();});
+        el.addEventListener('mousemove',e=>{_tlTTPos(e);e.stopPropagation();});
+        el.addEventListener('mouseleave',()=>{_tlTTHide();});
         area.appendChild(el);
       }
       if(log.fertilizer && showIconFert){
         const el=document.createElement("span");el.className="day-indicator";
         el.textContent="🍗";el.style.left=(centerPx+offset)+"px";
+        el.addEventListener('mouseenter',e=>{_tlTTShow(_tlIconTTHtml(log,'fert',ds),e);e.stopPropagation();});
+        el.addEventListener('mousemove',e=>{_tlTTPos(e);e.stopPropagation();});
+        el.addEventListener('mouseleave',()=>{_tlTTHide();});
         area.appendChild(el);
       }
       // Below bar: harvest + health
@@ -2204,11 +2230,17 @@ function makeTimeline(plant,cols,bounds,W,thin,todayPx,bg){
       if(log.harvest>0 && showIconHarvest){
         const el=document.createElement("span");el.className="day-indicator-below";
         el.textContent="🧺";el.style.left=(centerPx-offsetBelow)+"px";
+        el.addEventListener('mouseenter',e=>{_tlTTShow(_tlIconTTHtml(log,'harvest',ds),e);e.stopPropagation();});
+        el.addEventListener('mousemove',e=>{_tlTTPos(e);e.stopPropagation();});
+        el.addEventListener('mouseleave',()=>{_tlTTHide();});
         area.appendChild(el);
       }
       if(log.health && showIconHealth){
         const el=document.createElement("span");el.className="day-indicator-below";
         el.textContent="🐞";el.style.left=(centerPx+offsetBelow)+"px";
+        el.addEventListener('mouseenter',e=>{_tlTTShow(_tlIconTTHtml(log,'health',ds),e);e.stopPropagation();});
+        el.addEventListener('mousemove',e=>{_tlTTPos(e);e.stopPropagation();});
+        el.addEventListener('mouseleave',()=>{_tlTTHide();});
         area.appendChild(el);
       }
     });
@@ -2404,6 +2436,97 @@ function setFertPills(groupId, val){
   });
 }
 
+// ── Timeline tooltips ─────────────────────────────────────────────────────────
+function _tlTTShow(html,e){
+  const tt=document.getElementById('tl-tooltip');
+  if(!tt) return;
+  tt.innerHTML=html;
+  tt.style.display='block';
+  _tlTTPos(e);
+}
+function _tlTTHide(){ const tt=document.getElementById('tl-tooltip'); if(tt)tt.style.display='none'; }
+function _tlTTPos(e){
+  const tt=document.getElementById('tl-tooltip');
+  if(!tt||tt.style.display==='none') return;
+  const tw=tt.offsetWidth||240, th=tt.offsetHeight||160;
+  const vw=window.innerWidth, vh=window.innerHeight;
+  const x=e.clientX, y=e.clientY;
+  let left=x+14, top=y-th-14;
+  if(left+tw>vw-8) left=x-tw-14;
+  if(top<8) top=y+18;
+  tt.style.left=left+'px';
+  tt.style.top=top+'px';
+}
+function _tlBarTTHtml(plant){
+  const phases=[
+    {icon:'🌱',label:'Seeds planted',date:plant.planted},
+    {icon:'🌿',label:'Sprouted',      date:plant.sprouted},
+    {icon:'🌸',label:'First fruit',   date:plant.firstFruit},
+    {icon:'🧺',label:'First harvest', date:plant.firstHarvest},
+  ];
+  const phaseColors=['#4FA66A','#7BC043','#D5B56A','#E07B39'];
+  const confirmed=phases.filter(p=>p.date).length;
+  const barSegs=phaseColors.map((c,i)=>
+    `<div style="flex:1;background:${i<confirmed?c:'var(--border)'}"></div>`
+  ).join('');
+  const rows=phases.map(p=>{
+    const ds=p.date?new Date(p.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'projected';
+    const isProj=!p.date;
+    return `<div class="tl-tt-row"><span class="tl-tt-lbl">${p.icon} ${p.label}</span><span class="tl-tt-val" style="color:${isProj?'var(--text-secondary)':'var(--text-body)'};font-style:${isProj?'italic':'normal'}">${ds}</span></div>`;
+  }).join('');
+  const status=plant.removed?'Finished':plant.archived?'Archived':'Active';
+  const statusC=plant.removed?'var(--text-secondary)':plant.archived?'var(--text-secondary)':'#4FA66A';
+  const statusBg=plant.removed?'var(--border)':plant.archived?'var(--border)':'rgba(79,166,106,.15)';
+  const days=plant.planted?Math.floor((TODAY-new Date(plant.planted+'T00:00:00'))/86400000):0;
+  const qual=plant.avgQuality?plant.avgQuality.toFixed(1)+'★':'—';
+  const isDark=document.body.classList.contains('dark');
+  return `<div class="tl-tt-hdr">
+      <span style="background:#4FA66A;color:#1A1E1A;font-size:9px;padding:2px 6px;border-radius:3px;font-family:'DM Mono',monospace;font-weight:700">${plant.id}</span>
+      <span style="font-size:12px;font-weight:600;color:var(--text-body)">${plant.type}</span>
+      <span style="margin-left:auto;font-size:9px;color:${statusC};background:${statusBg};padding:1px 6px;border-radius:8px;font-weight:600">${status}</span>
+    </div>
+    <div class="tl-tt-body">
+      <div class="tl-tt-phase-bar">${barSegs}</div>
+      ${rows}
+      <div class="tl-tt-div"></div>
+      <div class="tl-tt-row"><span class="tl-tt-lbl">Total harvests</span><span class="tl-tt-val" style="color:#4FA66A">${plant.totalHarvest||0}</span></div>
+      <div class="tl-tt-row"><span class="tl-tt-lbl">Days active</span><span class="tl-tt-val">${days}</span></div>
+      ${plant.avgQuality?`<div class="tl-tt-row"><span class="tl-tt-lbl">Avg quality</span><span class="tl-tt-val" style="color:#D5B56A">${qual}</span></div>`:''}
+    </div>`;
+}
+function _tlIconTTHtml(log,type,date){
+  const dl=new Date(date+'T00:00:00').toLocaleDateString('en-US',{weekday:'short',month:'long',day:'numeric',year:'numeric'});
+  if(type==='water'){
+    return `<div class="tl-tt-hdr"><span style="font-size:18px">💧</span><div><div style="font-size:11px;font-weight:600;color:var(--text-body)">Watered</div><div style="font-size:9px;color:var(--text-secondary)">${dl}</div></div></div>`;
+  }
+  if(type==='fert'){
+    const types=(log.fertilizer||'').split(',').map(t=>t.trim()).filter(Boolean);
+    const pills=types.map(t=>`<span style="background:rgba(79,166,106,.15);color:#4FA66A;font-size:9px;padding:1px 7px;border-radius:10px;font-weight:600">${t}</span>`).join(' ');
+    return `<div class="tl-tt-hdr"><span style="font-size:18px">🍗</span><div><div style="font-size:11px;font-weight:600;color:var(--text-body)">Fertilized</div><div style="font-size:9px;color:var(--text-secondary)">${dl}</div></div></div>
+      ${types.length||log.fertNotes?`<div class="tl-tt-body">${types.length?`<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:${log.fertNotes?'6px':'0'}">${pills}</div>`:''}${log.fertNotes?`<div class="tl-tt-row"><span class="tl-tt-lbl">Product</span><span class="tl-tt-val">${log.fertNotes}</span></div>`:''}</div>`:''}`;
+  }
+  if(type==='harvest'){
+    const stars=log.quality?'★'.repeat(log.quality)+'☆'.repeat(5-log.quality):null;
+    return `<div class="tl-tt-hdr"><span style="font-size:18px">🧺</span><div><div style="font-size:11px;font-weight:600;color:var(--text-body)">Harvest logged</div><div style="font-size:9px;color:var(--text-secondary)">${dl}</div></div></div>
+      <div class="tl-tt-body">
+        <div class="tl-tt-row"><span class="tl-tt-lbl">Count</span><span class="tl-tt-val" style="color:#4FA66A">${log.harvest} fruit${log.harvest!==1?'s':''}</span></div>
+        ${log.weight?`<div class="tl-tt-row"><span class="tl-tt-lbl">Weight</span><span class="tl-tt-val">${log.weight} ${weightUnit||'oz'}</span></div>`:''}
+        ${stars?`<div class="tl-tt-row"><span class="tl-tt-lbl">Quality</span><span class="tl-tt-val" style="color:#D5B56A">${stars}</span></div>`:''}
+      </div>`;
+  }
+  if(type==='health'){
+    const sevC=log.healthSeverity==='critical'?'#D96B6B':log.healthSeverity==='high'?'#E07B39':log.healthSeverity==='medium'?'#D5B56A':'var(--text-secondary)';
+    const typeMap={pest:'🐛 Pest',disease:'🍂 Disease',good:'✅ Good Health',other:'⚠️ Other Issue'};
+    const typeLabel=typeMap[log.healthType]||'Health event';
+    return `<div class="tl-tt-hdr"><span style="font-size:18px">🐞</span><div><div style="font-size:11px;font-weight:600;color:#D96B6B">${typeLabel}</div><div style="font-size:9px;color:var(--text-secondary)">${dl}</div></div></div>
+      <div class="tl-tt-body">
+        ${log.healthSeverity?`<div class="tl-tt-row"><span class="tl-tt-lbl">Severity</span><span class="tl-tt-val" style="color:${sevC}">${log.healthSeverity}</span></div>`:''}
+        ${log.healthNotes?`<div class="tl-tt-row" style="flex-direction:column;gap:2px"><span class="tl-tt-lbl">Notes</span><span style="font-size:10px;color:var(--text-body);line-height:1.45">${log.healthNotes.substring(0,90)}${log.healthNotes.length>90?'…':''}</span></div>`:''}
+      </div>`;
+  }
+  return '';
+}
+
 // ── Auth functions ────────────────────────────────────────────────────────────
 function switchAuthTab(tab){
   document.getElementById('auth-signin').style.display=tab==='signin'?'block':'none';
@@ -2591,31 +2714,39 @@ async function initData(){
 
     // 6. Daily logs
     const {data:logsData} = await supa.from("daily_logs")
-      .select("plant_id, log_date, watered, fertilized, fertilizer_type")
+      .select("plant_id, log_date, watered, fertilized, fertilizer_type, fertilizer_notes")
       .in("plant_id", (plantsData||[]).map(p=>p.id));
     const {data:harvestLogsData} = await supa.from("harvest_logs")
-      .select("plant_id, harvest_date, quantity")
+      .select("plant_id, harvest_date, quantity, weight_value, quality_rating")
       .in("plant_id", (plantsData||[]).map(p=>p.id));
     const {data:healthLogsData} = await supa.from("health_events")
-      .select("plant_id, identified_date")
+      .select("plant_id, identified_date, event_type, severity, notes")
       .in("plant_id", (plantsData||[]).map(p=>p.id));
     const newLogs={};
     (logsData||[]).forEach(l=>{
       const code=idToCode[l.plant_id]; if(!code) return;
       const key=`${code}|${l.log_date}`;
-      newLogs[key]={watered:l.watered,fertilizer:l.fertilizer_type,harvest:0,health:false};
+      newLogs[key]={watered:l.watered,fertilizer:l.fertilizer_type,fertNotes:l.fertilizer_notes||null,harvest:0,health:false};
     });
     (harvestLogsData||[]).forEach(h=>{
       const code=idToCode[h.plant_id]; if(!code) return;
       const key=`${code}|${h.harvest_date}`;
-      if(!newLogs[key]) newLogs[key]={watered:false,fertilizer:null,harvest:0,health:false};
+      if(!newLogs[key]) newLogs[key]={watered:false,fertilizer:null,fertNotes:null,harvest:0,health:false};
       newLogs[key].harvest=(newLogs[key].harvest||0)+h.quantity;
+      newLogs[key].weight=h.weight_value||null;
+      newLogs[key].quality=h.quality_rating||0;
     });
     (healthLogsData||[]).forEach(h=>{
       const code=idToCode[h.plant_id]; if(!code) return;
       const key=`${code}|${h.identified_date}`;
-      if(!newLogs[key]) newLogs[key]={watered:false,fertilizer:null,harvest:0,health:false};
+      if(!newLogs[key]) newLogs[key]={watered:false,fertilizer:null,fertNotes:null,harvest:0,health:false};
       newLogs[key].health=true;
+      // Store first health event's details for tooltip
+      if(!newLogs[key].healthType){
+        newLogs[key].healthType=h.event_type||null;
+        newLogs[key].healthSeverity=h.severity||null;
+        newLogs[key].healthNotes=h.notes||null;
+      }
     });
 
     // 7. Update global state
