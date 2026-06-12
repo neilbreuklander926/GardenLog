@@ -2060,10 +2060,23 @@ function makeTimeline(plant,cols,bounds,W,thin,todayPx,bg){
     background:${document.body.classList.contains('dark')?'#303830':'#D8D3CC'};border-radius:${radius};
     z-index:1;box-shadow:0 1px 2px rgba(0,0,0,.08)`;
   area.appendChild(grayBar);
-  // Bar tooltip — hover anywhere on the bar
-  grayBar.addEventListener('mouseenter',e=>{_tlTTShow(_tlBarTTHtml(plant),e);});
-  grayBar.addEventListener('mousemove',e=>{_tlTTPos(e);});
-  grayBar.addEventListener('mouseleave',()=>{_tlTTHide();});
+
+  // ── Delegated tooltip handler on area ──
+  // (grayBar is z-index:1; segments/icons sit on top and swallow events, so we delegate)
+  area.dataset.ttPlant=plant.id;
+  area.addEventListener('mouseover',e=>{
+    const iconEl=e.target.closest('[data-tt-icon]');
+    if(iconEl){
+      const d=JSON.parse(iconEl.dataset.ttIcon);
+      const key=`${plant.id}|${d.date}`;
+      const log=DAILY_LOGS[key];
+      if(log) _tlTTShow(_tlIconTTHtml(log,d.type,d.date),e);
+    } else {
+      _tlTTShow(_tlBarTTHtml(plant),e);
+    }
+  });
+  area.addEventListener('mousemove',e=>{_tlTTPos(e);});
+  area.addEventListener('mouseleave',()=>{_tlTTHide();});
 
   // ── IDEAL cycle — thin segmented band floating ABOVE the actual bar ──
   if(zoom==="season" && showIdealCycle){
@@ -2211,17 +2224,13 @@ function makeTimeline(plant,cols,bounds,W,thin,todayPx,bg){
       if(log.watered && showIconWater){
         const el=document.createElement("span");el.className="day-indicator";
         el.textContent="💧";el.style.left=(centerPx-offset)+"px";
-        el.addEventListener('mouseenter',e=>{_tlTTShow(_tlIconTTHtml(log,'water',ds),e);e.stopPropagation();});
-        el.addEventListener('mousemove',e=>{_tlTTPos(e);e.stopPropagation();});
-        el.addEventListener('mouseleave',()=>{_tlTTHide();});
+        el.dataset.ttIcon=JSON.stringify({type:'water',date:ds});
         area.appendChild(el);
       }
       if(log.fertilizer && showIconFert){
         const el=document.createElement("span");el.className="day-indicator";
         el.textContent="🍗";el.style.left=(centerPx+offset)+"px";
-        el.addEventListener('mouseenter',e=>{_tlTTShow(_tlIconTTHtml(log,'fert',ds),e);e.stopPropagation();});
-        el.addEventListener('mousemove',e=>{_tlTTPos(e);e.stopPropagation();});
-        el.addEventListener('mouseleave',()=>{_tlTTHide();});
+        el.dataset.ttIcon=JSON.stringify({type:'fert',date:ds});
         area.appendChild(el);
       }
       // Below bar: harvest + health
@@ -2230,17 +2239,13 @@ function makeTimeline(plant,cols,bounds,W,thin,todayPx,bg){
       if(log.harvest>0 && showIconHarvest){
         const el=document.createElement("span");el.className="day-indicator-below";
         el.textContent="🧺";el.style.left=(centerPx-offsetBelow)+"px";
-        el.addEventListener('mouseenter',e=>{_tlTTShow(_tlIconTTHtml(log,'harvest',ds),e);e.stopPropagation();});
-        el.addEventListener('mousemove',e=>{_tlTTPos(e);e.stopPropagation();});
-        el.addEventListener('mouseleave',()=>{_tlTTHide();});
+        el.dataset.ttIcon=JSON.stringify({type:'harvest',date:ds});
         area.appendChild(el);
       }
       if(log.health && showIconHealth){
         const el=document.createElement("span");el.className="day-indicator-below";
         el.textContent="🐞";el.style.left=(centerPx+offsetBelow)+"px";
-        el.addEventListener('mouseenter',e=>{_tlTTShow(_tlIconTTHtml(log,'health',ds),e);e.stopPropagation();});
-        el.addEventListener('mousemove',e=>{_tlTTPos(e);e.stopPropagation();});
-        el.addEventListener('mouseleave',()=>{_tlTTHide();});
+        el.dataset.ttIcon=JSON.stringify({type:'health',date:ds});
         area.appendChild(el);
       }
     });
