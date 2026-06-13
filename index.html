@@ -431,10 +431,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .bar-seg{position:absolute;top:50%;transform:translateY(-50%);z-index:3}
   /* Water/fertilizer indicators sit in the space ABOVE the bar */
   .day-indicator{position:absolute;top:16%;transform:translate(-50%,-50%);
-    font-size:10px;z-index:5;pointer-events:none;line-height:1;user-select:none}
+    font-size:10px;z-index:5;line-height:1;user-select:none;cursor:default}
   /* Harvest/health indicators sit in the space BELOW the bar */
   .day-indicator-below{position:absolute;top:84%;transform:translate(-50%,-50%);
-    font-size:10px;z-index:5;pointer-events:none;line-height:1;user-select:none}
+    font-size:10px;z-index:5;line-height:1;user-select:none;cursor:default}
   /* Bulk action hover popup */
   #date-col-popup{position:fixed;z-index:200;background:var(--fbg);border:1px solid var(--border);
     border-radius:8px;padding:5px;display:flex;flex-direction:column;gap:4px;
