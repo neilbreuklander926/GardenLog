@@ -678,16 +678,23 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .fert-pill.on{background:var(--nav);color:#fff;border-color:var(--nav)}
   body.dark .fert-pill.on{background:#4FA66A;color:#1A1E1A;border-color:#4FA66A}
 
-  /* ── Timeline tooltip (Concept A) ── */
-  #tl-tooltip{position:fixed;background:#2D342D;border:1px solid #4FA66A;border-radius:10px;
-    box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:9999;pointer-events:none;
-    min-width:200px;max-width:280px;display:none;animation:tt-fade .12s ease-out}
+  /* ── Timeline tooltip ── */
+  #tl-tooltip{position:fixed;background:#2D342D;border:1.5px solid #4FA66A;border-radius:9px;
+    box-shadow:0 6px 20px rgba(0,0,0,.45);z-index:9999;pointer-events:none;
+    width:240px;display:none;animation:tt-fade .12s ease-out}
   @keyframes tt-fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-  body:not(.dark) #tl-tooltip{background:#fff;border-color:#1E5B35;box-shadow:0 4px 20px rgba(0,0,0,.14)}
-  .tl-tt-hdr{background:#242A24;border-radius:9px 9px 0 0;padding:8px 12px;display:flex;align-items:center;gap:7px;border-bottom:1px solid #404840}
-  body:not(.dark) .tl-tt-hdr{background:#1E5B35;border-bottom-color:#1E5B35}
-  body:not(.dark) .tl-tt-hdr *{color:#fff !important}
-  .tl-tt-body{padding:10px 12px}
+  body:not(.dark) #tl-tooltip{background:#fff;border-color:#1E5B35;box-shadow:0 4px 14px rgba(0,0,0,.12)}
+  .tl-tt-wrap{padding:10px 12px}
+  .tl-tt-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .tl-tt-title{font-size:12px;font-weight:700;color:#E7ECE7;line-height:1.3}
+  body:not(.dark) .tl-tt-title{color:#1A2E1A}
+  .tl-tt-row{display:flex;gap:6px;padding:2px 0;font-size:10px;align-items:flex-start}
+  .tl-tt-lbl{color:#7E877E;flex-shrink:0;min-width:62px;font-weight:500}
+  body:not(.dark) .tl-tt-lbl{color:#7A817A}
+  .tl-tt-val{color:#A9B2A9;line-height:1.45;word-break:break-word}
+  body:not(.dark) .tl-tt-val{color:#3E4A52}
+  .tl-tt-div{height:0.5px;background:#404840;margin:7px 0}
+  body:not(.dark) .tl-tt-div{background:#D8D3CB}
   .tl-tt-row{display:flex;justify-content:space-between;align-items:flex-start;padding:2px 0;font-size:10px;gap:8px}
   .tl-tt-lbl{color:var(--text-secondary);flex-shrink:0}
   .tl-tt-val{color:var(--text-body);font-weight:500;font-family:'DM Mono',monospace;font-size:10px;text-align:right}
@@ -2467,72 +2474,73 @@ function _tlTTPos(e){
   tt.style.left=left+'px';
   tt.style.top=top+'px';
 }
-function _tlBarTTHtml(plant){
-  const phases=[
-    {icon:'🌱',label:'Seeds planted',date:plant.planted},
-    {icon:'🌿',label:'Sprouted',      date:plant.sprouted},
-    {icon:'🌸',label:'First fruit',   date:plant.firstFruit},
-    {icon:'🧺',label:'First harvest', date:plant.firstHarvest},
-  ];
-  const phaseColors=['#4FA66A','#7BC043','#D5B56A','#E07B39'];
-  const confirmed=phases.filter(p=>p.date).length;
-  const barSegs=phaseColors.map((c,i)=>
-    `<div style="flex:1;background:${i<confirmed?c:'var(--border)'}"></div>`
-  ).join('');
-  const rows=phases.map(p=>{
-    const ds=p.date?new Date(p.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'projected';
-    const isProj=!p.date;
-    return `<div class="tl-tt-row"><span class="tl-tt-lbl">${p.icon} ${p.label}</span><span class="tl-tt-val" style="color:${isProj?'var(--text-secondary)':'var(--text-body)'};font-style:${isProj?'italic':'normal'}">${ds}</span></div>`;
-  }).join('');
-  const status=plant.removed?'Finished':plant.archived?'Archived':'Active';
-  const statusC=plant.removed?'var(--text-secondary)':plant.archived?'var(--text-secondary)':'#4FA66A';
-  const statusBg=plant.removed?'var(--border)':plant.archived?'var(--border)':'rgba(79,166,106,.15)';
-  const days=plant.planted?Math.floor((TODAY-new Date(plant.planted+'T00:00:00'))/86400000):0;
-  const qual=plant.avgQuality?plant.avgQuality.toFixed(1)+'★':'—';
+// ── Timeline tooltip builder functions ───────────────────────────────────────
+function _ttCard(icon,title,rows,titleColor){
   const isDark=document.body.classList.contains('dark');
-  return `<div class="tl-tt-hdr">
-      <span style="background:#4FA66A;color:#1A1E1A;font-size:9px;padding:2px 6px;border-radius:3px;font-family:'DM Mono',monospace;font-weight:700">${plant.id}</span>
-      <span style="font-size:12px;font-weight:600;color:var(--text-body)">${plant.type}</span>
-      <span style="margin-left:auto;font-size:9px;color:${statusC};background:${statusBg};padding:1px 6px;border-radius:8px;font-weight:600">${status}</span>
-    </div>
-    <div class="tl-tt-body">
-      <div class="tl-tt-phase-bar">${barSegs}</div>
-      ${rows}
-      <div class="tl-tt-div"></div>
-      <div class="tl-tt-row"><span class="tl-tt-lbl">Total harvests</span><span class="tl-tt-val" style="color:#4FA66A">${plant.totalHarvest||0}</span></div>
-      <div class="tl-tt-row"><span class="tl-tt-lbl">Days active</span><span class="tl-tt-val">${days}</span></div>
-      ${plant.avgQuality?`<div class="tl-tt-row"><span class="tl-tt-lbl">Avg quality</span><span class="tl-tt-val" style="color:#D5B56A">${qual}</span></div>`:''}
-    </div>`;
+  const tc=titleColor||(isDark?'#E7ECE7':'#1A2E1A');
+  const rowsHtml=rows.map(r=>{
+    const vc=r.color||(isDark?'#A9B2A9':'#3E4A52');
+    return '<div class="tl-tt-row"><span class="tl-tt-lbl">'+r.l+':</span><span class="tl-tt-val" style="color:'+vc+(r.italic?';font-style:italic':'')+'">'+r.v+'</span></div>';
+  }).join('');
+  return '<div class="tl-tt-wrap"><div class="tl-tt-top"><span style="font-size:18px;flex-shrink:0;line-height:1.3">'+icon+'</span><span class="tl-tt-title" style="color:'+tc+'">'+title+'</span></div>'+rowsHtml+'</div>';
+}
+function _tlBarTTHtml(plant){
+  const isDark=document.body.classList.contains('dark');
+  const phases=[
+    {icon:'\u{1f331}',label:'Seeds planted',date:plant.planted},
+    {icon:'\u{1f33f}',label:'Sprouted',     date:plant.sprouted},
+    {icon:'\u{1f338}',label:'First fruit',  date:plant.firstFruit},
+    {icon:'\u{1f9fa}',label:'First harvest',date:plant.firstHarvest},
+  ];
+  const status=plant.removed?'Finished':plant.archived?'Archived':'Active';
+  const days=plant.planted?Math.floor((TODAY-new Date(plant.planted+'T00:00:00'))/86400000):0;
+  const tc=isDark?'#E7ECE7':'#1A2E1A';
+  const rows=[
+    {l:'Status',v:status,color:(!plant.removed&&!plant.archived)?'#4FA66A':(isDark?'#7E877E':'#aaa')},
+    ...phases.map(p=>{
+      const ds=p.date?new Date(p.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'projected';
+      return {l:p.icon+' '+p.label,v:ds,color:p.date?(isDark?'#A9B2A9':'#3E4A52'):(isDark?'#5A625A':'#bbb'),italic:!p.date};
+    }),
+  ];
+  const statsRows=[
+    {l:'Harvests',v:String(plant.totalHarvest||0),color:'#4FA66A'},
+    {l:'Days active',v:String(days)},
+    ...(plant.avgQuality?[{l:'Avg quality',v:plant.avgQuality.toFixed(1)+' ★',color:'#D5B56A'}]:[]),
+  ];
+  const idBadge='<span style="background:#4FA66A;color:#1A1E1A;font-size:8px;padding:1px 5px;border-radius:3px;font-family:DM Mono,monospace;font-weight:700;margin-left:5px">'+plant.id+'</span>';
+  const rowsHtml=[...rows,...[{_div:true}],...statsRows].map(r=>{
+    if(r._div) return '<div class="tl-tt-div"></div>';
+    const vc=r.color||(isDark?'#A9B2A9':'#3E4A52');
+    return '<div class="tl-tt-row"><span class="tl-tt-lbl">'+r.l+':</span><span class="tl-tt-val" style="color:'+vc+(r.italic?';font-style:italic':'')+'">'+r.v+'</span></div>';
+  }).join('');
+  return '<div class="tl-tt-wrap"><div class="tl-tt-top"><span style="font-size:18px;flex-shrink:0">\u{1f331}</span><span class="tl-tt-title" style="color:'+tc+'">'+plant.type+idBadge+'</span></div>'+rowsHtml+'</div>';
 }
 function _tlIconTTHtml(log,type,date){
   const dl=new Date(date+'T00:00:00').toLocaleDateString('en-US',{weekday:'short',month:'long',day:'numeric',year:'numeric'});
   if(type==='water'){
-    return `<div class="tl-tt-hdr"><span style="font-size:18px">💧</span><div><div style="font-size:11px;font-weight:600;color:var(--text-body)">Watered</div><div style="font-size:9px;color:var(--text-secondary)">${dl}</div></div></div>`;
+    return _ttCard('\u{1f4a7}','Watered',[{l:'Date',v:dl}]);
   }
   if(type==='fert'){
     const types=(log.fertilizer||'').split(',').map(t=>t.trim()).filter(Boolean);
-    const pills=types.map(t=>`<span style="background:rgba(79,166,106,.15);color:#4FA66A;font-size:9px;padding:1px 7px;border-radius:10px;font-weight:600">${t}</span>`).join(' ');
-    return `<div class="tl-tt-hdr"><span style="font-size:18px">🍗</span><div><div style="font-size:11px;font-weight:600;color:var(--text-body)">Fertilized</div><div style="font-size:9px;color:var(--text-secondary)">${dl}</div></div></div>
-      ${types.length||log.fertNotes?`<div class="tl-tt-body">${types.length?`<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:${log.fertNotes?'6px':'0'}">${pills}</div>`:''}${log.fertNotes?`<div class="tl-tt-row"><span class="tl-tt-lbl">Notes</span><span class="tl-tt-val">${log.fertNotes}</span></div>`:''}</div>`:''}`;
+    const rows=[{l:'Date',v:dl}];
+    if(types.length) rows.push({l:'Type',v:types.join(', ')});
+    if(log.fertNotes) rows.push({l:'Notes',v:log.fertNotes});
+    return _ttCard('\u{1f357}','Fertilized',rows);
   }
   if(type==='harvest'){
-    const stars=log.quality?'★'.repeat(log.quality)+'☆'.repeat(5-log.quality):null;
-    return `<div class="tl-tt-hdr"><span style="font-size:18px">🧺</span><div><div style="font-size:11px;font-weight:600;color:var(--text-body)">Harvest logged</div><div style="font-size:9px;color:var(--text-secondary)">${dl}</div></div></div>
-      <div class="tl-tt-body">
-        <div class="tl-tt-row"><span class="tl-tt-lbl">Count</span><span class="tl-tt-val" style="color:#4FA66A">${log.harvest} fruit${log.harvest!==1?'s':''}</span></div>
-        ${log.weight?`<div class="tl-tt-row"><span class="tl-tt-lbl">Weight</span><span class="tl-tt-val">${log.weight} ${weightUnit||'oz'}</span></div>`:''}
-        ${stars?`<div class="tl-tt-row"><span class="tl-tt-lbl">Quality</span><span class="tl-tt-val" style="color:#D5B56A">${stars}</span></div>`:''}
-      </div>`;
+    const stars=log.quality?'\u2605'.repeat(log.quality)+'\u2606'.repeat(5-log.quality):null;
+    const rows=[{l:'Date',v:dl},{l:'Count',v:log.harvest+' fruit'+(log.harvest!==1?'s':'')}];
+    if(log.weight) rows.push({l:'Weight',v:log.weight+' '+(weightUnit||'oz')});
+    if(stars) rows.push({l:'Quality',v:stars,color:'#D5B56A'});
+    return _ttCard('\u{1f9fa}','Harvest',rows);
   }
   if(type==='health'){
-    const sevC=log.healthSeverity==='critical'?'#D96B6B':log.healthSeverity==='high'?'#E07B39':log.healthSeverity==='medium'?'#D5B56A':'var(--text-secondary)';
-    const typeMap={pest:'🐛 Pest',disease:'🍂 Disease',good:'✅ Good Health',other:'⚠️ Other Issue'};
-    const typeLabel=typeMap[log.healthType]||'Health event';
-    return `<div class="tl-tt-hdr"><span style="font-size:18px">🐞</span><div><div style="font-size:11px;font-weight:600;color:#D96B6B">${typeLabel}</div><div style="font-size:9px;color:var(--text-secondary)">${dl}</div></div></div>
-      <div class="tl-tt-body">
-        ${log.healthSeverity?`<div class="tl-tt-row"><span class="tl-tt-lbl">Severity</span><span class="tl-tt-val" style="color:${sevC}">${log.healthSeverity}</span></div>`:''}
-        ${log.healthNotes?`<div class="tl-tt-row" style="flex-direction:column;gap:2px"><span class="tl-tt-lbl">Notes</span><span style="font-size:10px;color:var(--text-body);line-height:1.45">${log.healthNotes.substring(0,90)}${log.healthNotes.length>90?'…':''}</span></div>`:''}
-      </div>`;
+    const sevC=log.healthSeverity==='critical'?'#D96B6B':log.healthSeverity==='high'?'#E07B39':log.healthSeverity==='medium'?'#D5B56A':null;
+    const typeMap={pest:'Pest',disease:'Disease',good:'Good Health',other:'Other Issue'};
+    const rows=[{l:'Date',v:dl},{l:'Category',v:typeMap[log.healthType]||'Health event'}];
+    if(log.healthSeverity) rows.push({l:'Severity',v:log.healthSeverity,color:sevC});
+    if(log.healthNotes) rows.push({l:'Notes',v:log.healthNotes.substring(0,80)+(log.healthNotes.length>80?'\u2026':'')});
+    return _ttCard('\u{1f41e}','Health event',rows,'#D96B6B');
   }
   return '';
 }
