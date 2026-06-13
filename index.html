@@ -757,7 +757,19 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     /* ── Timeline touch ── */
     #view-gantt{touch-action:pan-x pan-y}
 
-    /* ── Side nav (Photos/Notes): collapse sidebar, full-width content ── */
+    /* ── + New Plant button: show just "+" on mobile ── */
+    #new-plant-label,#new-plant-btn .arrow{display:none}
+    #new-plant-btn{padding:4px 10px;font-size:13px;white-space:nowrap}
+
+    /* ── Plant detail breadcrumb: compact single line ── */
+    #plant-detail-view>div:first-child{flex-wrap:nowrap;gap:6px;padding:7px 10px}
+    #pd-breadcrumb{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px}
+    #pd-title{font-size:12px !important;white-space:nowrap;overflow:hidden}
+    #pd-name-display{font-size:12px !important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px}
+    #pd-id-display{font-size:11px !important}
+
+    /* ── Side nav: start collapsed on mobile ── */
+    #photos-nav-sidebar,#notes-nav-sidebar{width:0;min-width:0;overflow:hidden;border-right:none}
     #photos-nav-sidebar,#notes-nav-sidebar{
       width:0;min-width:0;overflow:hidden;flex-shrink:0;
       transition:width .22s ease;border-right:none;
@@ -800,6 +812,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   /* ── Mobile-only elements hidden on desktop ── */
   .mob-snav-btn{display:none}
   .mob-snav-overlay{display:none}
+  /* ── Side nav collapse ── */
+  #photos-nav-sidebar,#notes-nav-sidebar{transition:width .2s ease,min-width .2s ease}
+  .snav-collapsed{width:0 !important;min-width:0 !important;overflow:hidden !important;border-right:none !important}
+  .snav-expand-btn{background:transparent;border:none;cursor:pointer;color:var(--text-secondary);font-size:13px;padding:0 4px 0 0;line-height:1;flex-shrink:0}
+  .snav-expand-btn:hover{color:var(--text-body)}
   .snav-header{padding:8px 12px 5px;font-size:8px;font-weight:700;color:var(--text-secondary);letter-spacing:.08em;text-transform:uppercase;border-bottom:0.5px solid var(--border);position:sticky;top:0;background:var(--fbg);z-index:2}
   .snav-year{display:flex;align-items:center;gap:6px;padding:7px 12px;cursor:pointer;font-size:12px;font-weight:700;color:var(--nav);background:var(--fbg);border-bottom:0.5px solid var(--border);user-select:none}
   .snav-year:hover{background:var(--border)}
@@ -961,8 +978,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   /* Admin badge */
   #admin-badge{background:#E05C30;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;letter-spacing:.06em;text-transform:uppercase;margin-right:2px}
   #user-info{display:flex;align-items:center;gap:8px;margin-right:4px}
-  #user-email{font-size:10px;color:rgba(255,255,255,.7);font-family:'DM Mono',monospace;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  #signout-btn{background:rgba(255,255,255,.12);border:0.5px solid rgba(255,255,255,.25);color:rgba(255,255,255,.8);font-size:10px;padding:4px 9px;border-radius:5px;cursor:pointer;font-family:'DM Mono',monospace}
+  #user-email{display:none}
+  #signout-btn{background:rgba(255,255,255,.12);border:0.5px solid rgba(255,255,255,.25);color:rgba(255,255,255,.8);font-size:10px;padding:4px 9px;border-radius:5px;cursor:pointer;font-family:'DM Mono',monospace;white-space:nowrap}
   #signout-btn:hover{background:rgba(255,255,255,.22)}
   .pd-tab{background:transparent;border:none;padding:10px 18px;font-size:11px;font-family:'DM Mono',monospace;color:var(--text-secondary);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap}
   .pd-tab:hover{color:var(--nav);background:var(--fbg)}
@@ -1034,7 +1051,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     </div>
     <button onclick="toggleDark()" id="dark-toggle-btn" title="Toggle dark mode" style="background:rgba(255,255,255,.1);border:0.5px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);font-size:13px;padding:4px 8px;border-radius:5px;cursor:pointer;line-height:1">🌙</button>
     <div style="position:relative" id="new-plant-wrap">
-      <button id="new-plant-btn" onclick="toggleNewPlantMenu(event)">+ New Plant ▾</button>
+      <button id="new-plant-btn" onclick="toggleNewPlantMenu(event)">+ <span id="new-plant-label">New Plant</span> ▾</button>
       <div id="new-plant-menu" style="display:none;position:fixed;background:var(--card);border:1px solid var(--border);
         border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.18);min-width:220px;z-index:300;padding:5px 0">
         <div onclick="newPlantToDatabase()" style="padding:9px 16px;font-size:11px;cursor:pointer;color:var(--text-body);font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px"
@@ -2641,6 +2658,24 @@ function _tlIconTTHtml(log,type,date){
     return _ttCard('\u{1f41e}','Health event',rows,'#D96B6B');
   }
   return '';
+}
+
+window._photosNavCollapsed=false;
+window._notesNavCollapsed=false;
+
+function toggleSnavCollapse(type){
+  if(type==='photos'){
+    window._photosNavCollapsed=!window._photosNavCollapsed;
+    const sb=document.getElementById('photos-nav-sidebar');
+    if(sb) sb.classList.toggle('snav-collapsed',window._photosNavCollapsed);
+  } else {
+    window._notesNavCollapsed=!window._notesNavCollapsed;
+    const sb=document.getElementById('notes-nav-sidebar');
+    if(sb) sb.classList.toggle('snav-collapsed',window._notesNavCollapsed);
+  }
+  // Re-render content header to show/hide the expand button
+  if(type==='photos') _photosRenderContent();
+  else _notesRenderContent(_notesGroupByYM(window._notesData).byYM);
 }
 
 function mobToggleSnav(type){
@@ -5811,9 +5846,14 @@ function _photosGroupByYM(photos){
 }
 function _photosRenderSidebar(byYr){
   const sb=document.getElementById('photos-nav-sidebar');if(!sb)return;
+  const isCollapsed=window._photosNavCollapsed;
   const years=Object.keys(byYr).map(Number).sort((a,b)=>b-a);
   const allActive=window._photosSelYear===null;
-  let h='<div class="snav-header">Browse by date</div>';
+  let h='<div class="snav-header" style="display:flex;align-items:center;justify-content:space-between">'
+    +'<span>Browse by date</span>'
+    +'<button onclick="toggleSnavCollapse(\'photos\')" title="Collapse sidebar" '
+    +'style="background:transparent;border:none;cursor:pointer;color:var(--text-secondary);font-size:13px;padding:0 2px;line-height:1">◀</button>'
+    +'</div>';
   h+='<div class="snav-month '+(allActive?'active':'')+'" onclick="photosSelectPeriod(null,null)" style="padding:6px 12px;font-weight:600">All photos <span class="snav-count">'+window._photosData.length+'</span></div>';
   years.forEach(yr=>{
     const isExp=window._photosExpandedYears.has(yr);
@@ -5829,6 +5869,7 @@ function _photosRenderSidebar(byYr){
     }
   });
   sb.innerHTML=h;
+  sb.classList.toggle('snav-collapsed',!!isCollapsed);
 }
 function _photosGetPeriodItems(yr,mo){
   const filter=arr=>{
@@ -5885,7 +5926,9 @@ function _photosRenderContent(){
     +'<button class="ptp-opt '+((!showAll)?'active':'')+'" onclick="photosToggleSource(false)">Garden only</button>'
     +'<button class="ptp-opt '+(showAll?'active':'')+'" onclick="photosToggleSource(true)">All photos</button>'
     +'</div>';
-  cp.innerHTML='<div class="snav-content-hdr"><button class="mob-snav-btn" onclick="mobToggleSnav(\'photos\')">☰</button><span style="font-size:14px;font-weight:600;color:var(--nav-text,var(--nav))">'+title+'</span><span style="font-size:10px;color:var(--text-secondary)">'+totalCount+' photo'+(totalCount!==1?'s':'')+'</span>'+toggleHtml+'<button onclick="window._photosShowUpload=!window._photosShowUpload;_photosRenderContent()" style="margin-left:auto;background:var(--nav);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:600">&#128247; Upload</button></div><div class="snav-content-body">'+uploadHtml+histHtml+'</div>';
+  const isCollapsed=window._photosNavCollapsed;
+  const expandBtn=isCollapsed?'<button class="snav-expand-btn" onclick="toggleSnavCollapse(\'photos\')" title="Expand sidebar">▶</button>':'';
+  cp.innerHTML='<div class="snav-content-hdr">'+expandBtn+'<button class="mob-snav-btn" onclick="mobToggleSnav(\'photos\')">☰</button><span style="font-size:14px;font-weight:600;color:var(--nav-text,var(--nav))">'+title+'</span><span style="font-size:10px;color:var(--text-secondary)">'+totalCount+' photo'+(totalCount!==1?'s':'')+'</span>'+toggleHtml+'<button onclick="window._photosShowUpload=!window._photosShowUpload;_photosRenderContent()" style="margin-left:auto;background:var(--nav);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:600">&#128247; Upload</button></div><div class="snav-content-body">'+uploadHtml+histHtml+'</div>';
 }
 function buildPhotoUploadForm(){
   return '<div class="pd-section" style="margin-bottom:12px">'
@@ -6013,8 +6056,12 @@ function _notesGroupByYM(notes){
 function _notesRenderSidebar(byYr){
   const sb=document.getElementById('notes-nav-sidebar'); if(!sb) return;
   const years=Object.keys(byYr).map(Number).sort((a,b)=>b-a);
-  let h=`<div class="snav-header">Browse by date</div>`;
   const allActive=window._notesSelYear===null;
+  let h=`<div class="snav-header" style="display:flex;align-items:center;justify-content:space-between">
+    <span>Browse by date</span>
+    <button onclick="toggleSnavCollapse('notes')" title="Collapse sidebar"
+      style="background:transparent;border:none;cursor:pointer;color:var(--text-secondary);font-size:13px;padding:0 2px;line-height:1">&#9664;</button>
+  </div>`;
   h+=`<div class="snav-month ${allActive?'active':''}" onclick="notesSelectPeriod(null,null)" style="padding:6px 12px;font-weight:600">
     All notes <span class="snav-count">${window._notesData.length}</span>
   </div>`;
@@ -6035,6 +6082,7 @@ function _notesRenderSidebar(byYr){
     }
   });
   sb.innerHTML=h;
+  sb.classList.toggle('snav-collapsed',!!window._notesNavCollapsed);
 }
 
 function _notesRenderContent(byYM){
@@ -6080,8 +6128,11 @@ function _notesRenderContent(byYM){
       </div>
       <div class="notes-entry-body">${n.content.replace(/</g,'&lt;')}</div>
     </div>`).join("")||`<div style="color:var(--text-secondary);font-size:11px;padding:20px 0">No notes for this period.</div>`;
+  const isNotesCollapsed=window._notesNavCollapsed;
+  const notesExpandBtn=isNotesCollapsed?`<button class="snav-expand-btn" onclick="toggleSnavCollapse('notes')" title="Expand sidebar">&#9654;</button>`:'';
   cp.innerHTML=`
     <div class="snav-content-hdr">
+      ${notesExpandBtn}
       <button class="mob-snav-btn" onclick="mobToggleSnav('notes')">☰</button>
       <span style="font-size:14px;font-weight:600;color:var(--nav-text,var(--nav))">${title}</span>
       <span style="font-size:10px;color:var(--text-secondary)">${items.length} note${items.length!==1?'s':''}</span>
