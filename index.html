@@ -2060,9 +2060,9 @@ function makeTimeline(plant,cols,bounds,W,thin,todayPx,bg){
     background:${document.body.classList.contains('dark')?'#303830':'#D8D3CC'};border-radius:${radius};
     z-index:1;box-shadow:0 1px 2px rgba(0,0,0,.08)`;
   area.appendChild(grayBar);
+  grayBar.dataset.ttBar='1';
 
   // ── Delegated tooltip handler on area ──
-  // (grayBar is z-index:1; segments/icons sit on top and swallow events, so we delegate)
   area.dataset.ttPlant=plant.id;
   area.addEventListener('mouseover',e=>{
     const iconEl=e.target.closest('[data-tt-icon]');
@@ -2071,8 +2071,10 @@ function makeTimeline(plant,cols,bounds,W,thin,todayPx,bg){
       const key=`${plant.id}|${d.date}`;
       const log=DAILY_LOGS[key];
       if(log) _tlTTShow(_tlIconTTHtml(log,d.type,d.date),e);
-    } else {
+    } else if(e.target.closest('[data-tt-bar]')){
       _tlTTShow(_tlBarTTHtml(plant),e);
+    } else {
+      _tlTTHide();
     }
   });
   area.addEventListener('mousemove',e=>{_tlTTPos(e);});
@@ -2141,6 +2143,7 @@ function makeTimeline(plant,cols,bounds,W,thin,todayPx,bg){
     }
     segs.forEach(seg=>{
       const el=document.createElement("div");el.className="bar-seg";
+      el.dataset.ttBar='1';
       if(seg.projected){
         el.style.cssText=`left:${seg.lx}px;width:${seg.w}px;height:${barH};
           background:${seg.grad};border-radius:${seg.br};
