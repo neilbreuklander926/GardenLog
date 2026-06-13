@@ -683,8 +683,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:9999;pointer-events:none;
     min-width:200px;max-width:280px;display:none;animation:tt-fade .12s ease-out}
   @keyframes tt-fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-  body:not(.dark) #tl-tooltip{background:#fff;border-color:#1E5B35;box-shadow:0 8px 32px rgba(0,0,0,.18)}
-  .tl-tt-hdr{background:var(--fbg);border-radius:9px 9px 0 0;padding:8px 12px;display:flex;align-items:center;gap:7px;border-bottom:1px solid var(--border)}
+  body:not(.dark) #tl-tooltip{background:#fff;border-color:#1E5B35;box-shadow:0 4px 20px rgba(0,0,0,.14)}
+  .tl-tt-hdr{background:#242A24;border-radius:9px 9px 0 0;padding:8px 12px;display:flex;align-items:center;gap:7px;border-bottom:1px solid #404840}
+  body:not(.dark) .tl-tt-hdr{background:#1E5B35;border-bottom-color:#1E5B35}
+  body:not(.dark) .tl-tt-hdr *{color:#fff !important}
   .tl-tt-body{padding:10px 12px}
   .tl-tt-row{display:flex;justify-content:space-between;align-items:flex-start;padding:2px 0;font-size:10px;gap:8px}
   .tl-tt-lbl{color:var(--text-secondary);flex-shrink:0}
@@ -2511,7 +2513,7 @@ function _tlIconTTHtml(log,type,date){
     const types=(log.fertilizer||'').split(',').map(t=>t.trim()).filter(Boolean);
     const pills=types.map(t=>`<span style="background:rgba(79,166,106,.15);color:#4FA66A;font-size:9px;padding:1px 7px;border-radius:10px;font-weight:600">${t}</span>`).join(' ');
     return `<div class="tl-tt-hdr"><span style="font-size:18px">🍗</span><div><div style="font-size:11px;font-weight:600;color:var(--text-body)">Fertilized</div><div style="font-size:9px;color:var(--text-secondary)">${dl}</div></div></div>
-      ${types.length||log.fertNotes?`<div class="tl-tt-body">${types.length?`<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:${log.fertNotes?'6px':'0'}">${pills}</div>`:''}${log.fertNotes?`<div class="tl-tt-row"><span class="tl-tt-lbl">Product</span><span class="tl-tt-val">${log.fertNotes}</span></div>`:''}</div>`:''}`;
+      ${types.length||log.fertNotes?`<div class="tl-tt-body">${types.length?`<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:${log.fertNotes?'6px':'0'}">${pills}</div>`:''}${log.fertNotes?`<div class="tl-tt-row"><span class="tl-tt-lbl">Notes</span><span class="tl-tt-val">${log.fertNotes}</span></div>`:''}</div>`:''}`;
   }
   if(type==='harvest'){
     const stars=log.quality?'★'.repeat(log.quality)+'☆'.repeat(5-log.quality):null;
