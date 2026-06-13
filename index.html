@@ -701,23 +701,23 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   ══════════════════════════════════════════ */
   @media (max-width:768px){
     /* ── Sticky header ── */
-    #topnav{position:sticky;top:0;z-index:300}
+    #topnav{position:sticky;top:0;z-index:300;touch-action:pan-x}
     #main{height:calc(100dvh - 52px)}
 
-    /* ── Nav: horizontal scroll, smaller tabs ── */
+    /* ── Nav: horizontal scroll, smaller tabs, pan-x only ── */
     #topnav{padding:0 10px;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch}
     #topnav::-webkit-scrollbar{display:none}
     .tab-btn{padding:4px 9px;font-size:11px;white-space:nowrap;flex-shrink:0}
     #logo-text{font-size:12px}
 
-    /* ── Toolbar: horizontal scroll ── */
-    #toolbar{padding:6px 10px;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
+    /* ── Toolbar: horizontal scroll, pan-x only ── */
+    #toolbar{padding:6px 10px;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;touch-action:pan-x}
     #toolbar::-webkit-scrollbar{display:none}
     #toolbar .tbtn{padding:4px 9px;font-size:10px;white-space:nowrap;flex-shrink:0}
     .zoom-btn{padding:3px 9px;font-size:10px;flex-shrink:0}
     #timeline-search-inp{width:130px;font-size:10px}
 
-    /* ── Timeline: scale down via CSS variables ── */
+    /* ── Timeline scale ── */
     :root{
       --lw:150px;
       --rh:44px;
@@ -725,13 +725,18 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       --bht:14px;
       --bhn:7px;
     }
-    /* Smaller text in timeline rows */
     .plant-type-name{font-size:10px !important}
     .g-fam-lbl{font-size:10px !important}
     .dhc-main{font-size:10px !important}
     .dhc-sub{font-size:8px !important}
     .day-indicator,.day-indicator-below{font-size:9px !important}
     #g-corner-label{font-size:8px !important}
+
+    /* ── Category header rows: NOT sticky on mobile (scroll normally) ── */
+    .g-family{position:relative !important;top:auto !important}
+
+    /* ── Lifecycle dates: single column on mobile ── */
+    .pd-dates-grid{grid-template-columns:1fr 1fr !important}
 
     /* ── Timeline touch ── */
     #view-gantt{touch-action:pan-x pan-y}
@@ -1826,7 +1831,7 @@ let scalePercent = 100;
 let collapsed    = {};
 let startDate    = (()=>{ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-30); return d; })(); // default: today centred in day view (60 cols)
 const TODAY      = new Date(); TODAY.setHours(0,0,0,0);
-const LEFT_W     = 230;
+let LEFT_W = 230; // updated each render() from CSS variable
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 const parseD      = s => s ? new Date(s+"T00:00:00") : null;
@@ -2903,6 +2908,7 @@ function render(){
   // Snap start to natural calendar boundary so column labels match actual position
   // year: snap to Jan 1; month: snap to 1st of month
   let effStart=new Date(startDate);effStart.setHours(0,0,0,0);
+  LEFT_W=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--lw'))||230;
   if(zoom==="month") effStart=new Date(effStart.getFullYear(),effStart.getMonth(),1);
   if(zoom==="year")  effStart=new Date(effStart.getFullYear(),0,1);
 
