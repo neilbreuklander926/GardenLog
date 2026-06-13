@@ -696,7 +696,94 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .tl-tt-div{height:0.5px;background:#404840;margin:7px 0}
   body:not(.dark) .tl-tt-div{background:#C8C2B8}
 
-  /* ── Side-nav sidebar (Notes & Photos) ── */
+  /* ══════════════════════════════════════════
+     MOBILE RESPONSIVE  (≤ 768px)
+  ══════════════════════════════════════════ */
+  @media (max-width:768px){
+    /* ── Nav: horizontal scroll, smaller tabs ── */
+    #topnav{padding:0 10px;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+    #topnav::-webkit-scrollbar{display:none}
+    .tab-btn{padding:4px 9px;font-size:11px;white-space:nowrap;flex-shrink:0}
+    #logo-text{font-size:12px}
+
+    /* ── Toolbar: horizontal scroll ── */
+    #toolbar{padding:6px 10px;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
+    #toolbar::-webkit-scrollbar{display:none}
+    #toolbar .tbtn{padding:4px 9px;font-size:10px;white-space:nowrap;flex-shrink:0}
+    .zoom-btn{padding:3px 9px;font-size:10px;flex-shrink:0}
+    #timeline-search-inp{width:130px;font-size:10px}
+
+    /* ── Main height: account for potential nav wrap ── */
+    #main{height:calc(100dvh - 52px)}
+
+    /* ── Timeline: let it scroll horizontally freely ── */
+    #view-gantt{touch-action:pan-x pan-y}
+    #g-header,#g-dates-hdr{-webkit-overflow-scrolling:touch}
+
+    /* ── Side nav (Photos/Notes): collapse to overlay drawer ── */
+    #view-photos,#view-notes{position:relative}
+    #photos-nav-sidebar,#notes-nav-sidebar{
+      position:absolute;left:0;top:0;bottom:0;z-index:50;
+      transform:translateX(-100%);transition:transform .22s ease;
+      box-shadow:4px 0 16px rgba(0,0,0,.3);
+      width:220px !important;
+    }
+    #photos-nav-sidebar.mob-open,#notes-nav-sidebar.mob-open{transform:translateX(0)}
+    .mob-snav-btn{
+      display:flex !important;
+      position:absolute;top:10px;left:10px;z-index:51;
+      background:var(--nav);color:#fff;border:none;border-radius:6px;
+      padding:5px 10px;font-size:11px;cursor:pointer;font-family:inherit;
+      align-items:center;gap:5px;
+    }
+    .mob-snav-overlay{
+      display:none;position:absolute;inset:0;background:rgba(0,0,0,.4);z-index:49;
+    }
+    .mob-snav-overlay.mob-open{display:block}
+    /* Push content header right when drawer button present */
+    .snav-content-hdr{padding-left:90px}
+
+    /* ── Plant log ── */
+    #view-log{height:calc(100dvh - 52px)}
+    .log-form.open{grid-template-columns:1fr !important}
+    .log-form.open .log-field.full{grid-column:1}
+
+    /* ── Plant detail tabs ── */
+    .pd-tabs-bar{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
+    .pd-tabs-bar::-webkit-scrollbar{display:none}
+    .pd-tab{white-space:nowrap;flex-shrink:0}
+
+    /* ── Plant detail overview grid ── */
+    .pd-info-grid{grid-template-columns:1fr !important}
+
+    /* ── Bulk panels / modals: full width ── */
+    .bulk-sheet{min-width:0 !important;width:calc(100vw - 32px) !important;max-width:100% !important;padding:16px !important}
+    .bulk-body{padding:0 !important}
+    [style*="min-width:420px"],[style*="min-width:380px"],[style*="min-width:360px"]{min-width:0 !important;width:calc(100vw - 32px) !important}
+
+    /* ── Form grids: single column ── */
+    .bulk-body [style*="grid-template-columns:1fr 1fr"],
+    .bulk-body [style*="grid-template-columns: 1fr 1fr"]{grid-template-columns:1fr !important}
+    [style*="display:grid;grid-template-columns:1fr 1fr"]{grid-template-columns:1fr !important}
+
+    /* ── Photo/harvest grids: fewer columns ── */
+    .plog-photo-grid{grid-template-columns:repeat(3,1fr) !important}
+    .ph-grid{grid-template-columns:repeat(3,1fr) !important}
+
+    /* ── Harvest table: horizontal scroll ── */
+    .pd-harvest-table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+    /* ── Settings panel ── */
+    #view-settings .pd-panel{padding:12px 14px}
+    .settings-btn{width:100% !important;box-sizing:border-box}
+
+    /* ── Tooltips: keep within viewport ── */
+    #tl-tooltip{width:200px !important}
+  }
+
+  /* ── Mobile: hide snav toggle on desktop ── */
+  .mob-snav-btn{display:none}
+  .mob-snav-overlay{display:none}
   .snav-header{padding:8px 12px 5px;font-size:8px;font-weight:700;color:var(--text-secondary);letter-spacing:.08em;text-transform:uppercase;border-bottom:0.5px solid var(--border);position:sticky;top:0;background:var(--fbg);z-index:2}
   .snav-year{display:flex;align-items:center;gap:6px;padding:7px 12px;cursor:pointer;font-size:12px;font-weight:700;color:var(--nav);background:var(--fbg);border-bottom:0.5px solid var(--border);user-select:none}
   .snav-year:hover{background:var(--border)}
@@ -2538,6 +2625,15 @@ function _tlIconTTHtml(log,type,date){
     return _ttCard('\u{1f41e}','Health event',rows,'#D96B6B');
   }
   return '';
+}
+
+function mobToggleSnav(type){
+  const sb=document.getElementById(type+'-nav-sidebar');
+  const ov=document.getElementById('mob-'+type+'-overlay');
+  if(!sb) return;
+  const isOpen=sb.classList.contains('mob-open');
+  sb.classList.toggle('mob-open',!isOpen);
+  if(ov) ov.classList.toggle('mob-open',!isOpen);
 }
 
 // ── Auth functions ────────────────────────────────────────────────────────────
@@ -5971,6 +6067,8 @@ function _notesRenderContent(byYM){
       <div class="notes-entry-body">${n.content.replace(/</g,'&lt;')}</div>
     </div>`).join("")||`<div style="color:var(--text-secondary);font-size:11px;padding:20px 0">No notes for this period.</div>`;
   cp.innerHTML=`
+    <button class="mob-snav-btn" onclick="mobToggleSnav('notes')">☰ Browse</button>
+    <div class="mob-snav-overlay" id="mob-notes-overlay" onclick="mobToggleSnav('notes')"></div>
     <div class="snav-content-hdr">
       <span style="font-size:14px;font-weight:600;color:var(--nav-text,var(--nav))">${title}</span>
       <span style="font-size:10px;color:var(--text-secondary)">${items.length} note${items.length!==1?'s':''}</span>
