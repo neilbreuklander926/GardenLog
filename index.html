@@ -700,6 +700,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
      MOBILE RESPONSIVE  (≤ 768px)
   ══════════════════════════════════════════ */
   @media (max-width:768px){
+    /* ── Sticky header ── */
+    #topnav{position:sticky;top:0;z-index:300}
+    #main{height:calc(100dvh - 52px)}
+
     /* ── Nav: horizontal scroll, smaller tabs ── */
     #topnav{padding:0 10px;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch}
     #topnav::-webkit-scrollbar{display:none}
@@ -713,12 +717,24 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     .zoom-btn{padding:3px 9px;font-size:10px;flex-shrink:0}
     #timeline-search-inp{width:130px;font-size:10px}
 
-    /* ── Main height: account for potential nav wrap ── */
-    #main{height:calc(100dvh - 52px)}
+    /* ── Timeline: scale down via CSS variables ── */
+    :root{
+      --lw:150px;
+      --rh:44px;
+      --hh:60px;
+      --bht:14px;
+      --bhn:7px;
+    }
+    /* Smaller text in timeline rows */
+    .plant-type-name{font-size:10px !important}
+    .g-fam-lbl{font-size:10px !important}
+    .dhc-main{font-size:10px !important}
+    .dhc-sub{font-size:8px !important}
+    .day-indicator,.day-indicator-below{font-size:9px !important}
+    #g-corner-label{font-size:8px !important}
 
-    /* ── Timeline: let it scroll horizontally freely ── */
+    /* ── Timeline touch ── */
     #view-gantt{touch-action:pan-x pan-y}
-    #g-header,#g-dates-hdr{-webkit-overflow-scrolling:touch}
 
     /* ── Side nav (Photos/Notes): collapse to overlay drawer ── */
     #view-photos,#view-notes{position:relative}
@@ -740,7 +756,6 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       display:none;position:absolute;inset:0;background:rgba(0,0,0,.4);z-index:49;
     }
     .mob-snav-overlay.mob-open{display:block}
-    /* Push content header right when drawer button present */
     .snav-content-hdr{padding-left:90px}
 
     /* ── Plant log ── */
@@ -753,35 +768,20 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     .pd-tabs-bar::-webkit-scrollbar{display:none}
     .pd-tab{white-space:nowrap;flex-shrink:0}
 
-    /* ── Plant detail overview grid ── */
-    .pd-info-grid{grid-template-columns:1fr !important}
-
     /* ── Bulk panels / modals: full width ── */
     .bulk-sheet{min-width:0 !important;width:calc(100vw - 32px) !important;max-width:100% !important;padding:16px !important}
     .bulk-body{padding:0 !important}
     [style*="min-width:420px"],[style*="min-width:380px"],[style*="min-width:360px"]{min-width:0 !important;width:calc(100vw - 32px) !important}
 
-    /* ── Form grids: single column ── */
-    .bulk-body [style*="grid-template-columns:1fr 1fr"],
-    .bulk-body [style*="grid-template-columns: 1fr 1fr"]{grid-template-columns:1fr !important}
-    [style*="display:grid;grid-template-columns:1fr 1fr"]{grid-template-columns:1fr !important}
-
-    /* ── Photo/harvest grids: fewer columns ── */
+    /* ── Photo/harvest grids ── */
     .plog-photo-grid{grid-template-columns:repeat(3,1fr) !important}
-    .ph-grid{grid-template-columns:repeat(3,1fr) !important}
-
-    /* ── Harvest table: horizontal scroll ── */
     .pd-harvest-table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
 
-    /* ── Settings panel ── */
-    #view-settings .pd-panel{padding:12px 14px}
-    .settings-btn{width:100% !important;box-sizing:border-box}
-
-    /* ── Tooltips: keep within viewport ── */
+    /* ── Tooltips ── */
     #tl-tooltip{width:200px !important}
   }
 
-  /* ── Mobile: hide snav toggle on desktop ── */
+  /* ── Mobile-only elements hidden on desktop ── */
   .mob-snav-btn{display:none}
   .mob-snav-overlay{display:none}
   .snav-header{padding:8px 12px 5px;font-size:8px;font-weight:700;color:var(--text-secondary);letter-spacing:.08em;text-transform:uppercase;border-bottom:0.5px solid var(--border);position:sticky;top:0;background:var(--fbg);z-index:2}
