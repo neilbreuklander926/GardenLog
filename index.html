@@ -484,7 +484,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   /* Harvest chip — absolute on timeline area, above bars */
   .chip{position:absolute;top:50%;transform:translate(-50%,-50%);
     font-size:9px;font-weight:700;background:rgba(255,255,255,.92);
-    border-radius:3px;padding:1px 5px;color:var(--text-body);line-height:1.4;
+    border-radius:3px;padding:1px 5px;color:#1A2010;line-height:1.4;
     white-space:nowrap;z-index:5;box-shadow:0 1px 3px rgba(0,0,0,.15)}
 
   /* Scale control */
@@ -4277,7 +4277,7 @@ function renderSettingsTab(){
   const c=document.getElementById('settings-tab-content');
   if(!c) return;
   c.innerHTML=`
-    <h2 style="font-family:'Fraunces',serif;font-size:22px;font-weight:600;color:var(--nav);margin-bottom:24px">⚙️ Settings</h2>
+    <h2 style="font-family:'Fraunces',serif;font-size:22px;font-weight:600;color:var(--text-body);margin-bottom:24px">⚙️ Settings</h2>
     <div class="pd-section" style="background:var(--card);border-radius:12px;border:1px solid var(--border);margin-bottom:16px">
       <div class="pd-section-hdr">Garden & Zone</div>
       <div class="pd-section-body">
