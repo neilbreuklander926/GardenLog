@@ -700,31 +700,45 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
      MOBILE RESPONSIVE  (≤ 768px)
   ══════════════════════════════════════════ */
   @media (max-width:768px){
-    /* ── Sticky header ── */
-    #topnav{position:sticky;top:0;z-index:300;touch-action:pan-x}
-    #main{height:calc(100dvh - 52px)}
-
-    /* ── Nav: horizontal scroll, smaller tabs, pan-x only ── */
-    #topnav{padding:0 10px;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+    /* ── Sticky header: pan-x only, no diagonal drag ── */
+    #topnav{
+      position:sticky;top:0;z-index:300;
+      padding:0 10px;gap:4px;
+      overflow-x:auto;overflow-y:hidden;
+      -webkit-overflow-scrolling:touch;
+      touch-action:pan-x;
+      overscroll-behavior-x:contain;
+    }
     #topnav::-webkit-scrollbar{display:none}
     .tab-btn{padding:4px 9px;font-size:11px;white-space:nowrap;flex-shrink:0}
     #logo-text{font-size:12px}
+    #main{height:calc(100dvh - 52px)}
 
-    /* ── Toolbar: horizontal scroll, pan-x only ── */
-    #toolbar{padding:6px 10px;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;touch-action:pan-x}
+    /* ── Toolbar: pan-x only, no diagonal drag ── */
+    #toolbar{
+      padding:6px 10px;gap:6px;
+      overflow-x:auto;overflow-y:hidden;
+      -webkit-overflow-scrolling:touch;
+      flex-wrap:nowrap;
+      touch-action:pan-x;
+      overscroll-behavior-x:contain;
+    }
     #toolbar::-webkit-scrollbar{display:none}
     #toolbar .tbtn{padding:4px 9px;font-size:10px;white-space:nowrap;flex-shrink:0}
     .zoom-btn{padding:3px 9px;font-size:10px;flex-shrink:0}
     #timeline-search-inp{width:130px;font-size:10px}
 
-    /* ── Timeline scale ── */
-    :root{
-      --lw:150px;
-      --rh:44px;
-      --hh:60px;
-      --bht:14px;
-      --bhn:7px;
+    /* ── Plant detail tab bar: pan-x only ── */
+    #pd-tab-bar{
+      overflow-x:auto;overflow-y:hidden;
+      touch-action:pan-x;
+      overscroll-behavior-x:contain;
     }
+    #pd-tab-bar::-webkit-scrollbar{display:none}
+    .pd-tab{white-space:nowrap;flex-shrink:0}
+
+    /* ── Timeline scale ── */
+    :root{--lw:150px;--rh:44px;--hh:60px;--bht:14px;--bhn:7px}
     .plant-type-name{font-size:10px !important}
     .g-fam-lbl{font-size:10px !important}
     .dhc-main{font-size:10px !important}
@@ -732,11 +746,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     .day-indicator,.day-indicator-below{font-size:9px !important}
     #g-corner-label{font-size:8px !important}
 
-    /* ── Category header rows: NOT sticky on mobile (scroll normally) ── */
+    /* ── Category header rows: scroll normally on mobile ── */
     .g-family{position:relative !important;top:auto !important}
 
-    /* ── Lifecycle dates: single column on mobile ── */
-    .pd-dates-grid{grid-template-columns:1fr 1fr !important}
+    /* ── Lifecycle phase date boxes: each date gets its own row ── */
+    .pd-dates-grid{grid-template-columns:1fr !important}
 
     /* ── Timeline touch ── */
     #view-gantt{touch-action:pan-x pan-y}
@@ -1218,7 +1232,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
           <span id="pd-name-display" style="font-size:15px"></span>
         </span>
       </div>
-      <div style="display:flex;border-bottom:2px solid var(--border);background:var(--card);flex-shrink:0;overflow-x:auto">
+      <div id="pd-tab-bar" style="display:flex;border-bottom:2px solid var(--border);background:var(--card);flex-shrink:0;overflow-x:auto">
         <button class="pd-tab active" data-pdtab="overview" onclick="switchPlantTab('overview')">Overview</button>
         <button class="pd-tab" data-pdtab="activity"  onclick="switchPlantTab('activity')">Activity</button>
         <button class="pd-tab" data-pdtab="harvests"  onclick="switchPlantTab('harvests')">Harvests</button>
