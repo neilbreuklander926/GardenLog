@@ -367,9 +367,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     color:#B33A1F;cursor:pointer;font-family:inherit}
   .note-edit-btn{background:var(--fbg);color:var(--text-body);border:1px solid var(--border) !important;border-radius:4px;padding:2px 8px;font-size:10px;cursor:pointer;font-family:inherit}
   .note-edit-btn:hover{background:var(--border)}
-  .notes-entry{background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden}
-  .notes-entry-hdr{background:var(--fbg);padding:9px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
-  .notes-entry-body{padding:12px 16px;font-size:12px;color:var(--text-body);line-height:1.7;white-space:pre-wrap}
+  .notes-entry{background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden}
+  .notes-entry-hdr{background:var(--fbg);padding:12px 16px;display:flex;flex-direction:column;gap:0;border-bottom:1px solid var(--border)}
+  .notes-entry-body{padding:14px 16px;font-size:13px;color:var(--text-body);line-height:1.75;white-space:pre-wrap;font-family:system-ui,-apple-system,sans-serif}
   .dhc-year{font-size:9px;font-weight:700;color:#999;letter-spacing:.04em;
     padding:3px 0 0;text-align:center;width:100%;border-bottom:1px solid var(--border);
     background:var(--fbg);position:absolute;top:0;left:0;right:0;height:20px;
@@ -700,21 +700,27 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
      MOBILE RESPONSIVE  (≤ 768px)
   ══════════════════════════════════════════ */
   @media (max-width:768px){
-    /* ── Sticky header: pan-x only, no diagonal drag ── */
+    /* ── Nav: sticky, pan-x, emoji hidden, bigger touch targets ── */
     #topnav{
       position:sticky;top:0;z-index:300;
-      padding:0 10px;gap:4px;
+      padding:0 8px;gap:4px;height:48px;
       overflow-x:auto;overflow-y:hidden;
       -webkit-overflow-scrolling:touch;
       touch-action:pan-x;
       overscroll-behavior-x:contain;
     }
     #topnav::-webkit-scrollbar{display:none}
-    .tab-btn{padding:4px 9px;font-size:11px;white-space:nowrap;flex-shrink:0}
-    #logo-text{font-size:12px}
-    #main{height:calc(100dvh - 52px)}
+    #logo{font-size:14px;margin-right:6px;white-space:nowrap}
+    .tab-btn{padding:5px 10px;font-size:11px;white-space:nowrap;flex-shrink:0;min-height:36px}
+    /* Hide emoji in tab labels on mobile */
+    .tab-btn{font-size:11px}
+    #main{height:calc(100dvh - 48px)}
 
-    /* ── Toolbar: pan-x only, no diagonal drag ── */
+    /* ── Sign Out: icon-only on mobile ── */
+    #signout-btn{padding:5px 10px;font-size:10px}
+    #dark-toggle-btn{padding:5px 9px !important;font-size:14px !important}
+
+    /* ── Toolbar: pan-x only ── */
     #toolbar{
       padding:6px 10px;gap:6px;
       overflow-x:auto;overflow-y:hidden;
@@ -728,12 +734,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     .zoom-btn{padding:3px 9px;font-size:10px;flex-shrink:0}
     #timeline-search-inp{width:130px;font-size:10px}
 
-    /* ── Plant detail tab bar: pan-x only ── */
-    #pd-tab-bar{
-      overflow-x:auto;overflow-y:hidden;
-      touch-action:pan-x;
-      overscroll-behavior-x:contain;
-    }
+    /* ── Plant detail tab bar ── */
+    #pd-tab-bar{overflow-x:auto;overflow-y:hidden;touch-action:pan-x;overscroll-behavior-x:contain}
     #pd-tab-bar::-webkit-scrollbar{display:none}
     .pd-tab{white-space:nowrap;flex-shrink:0}
 
@@ -745,31 +747,25 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     .dhc-sub{font-size:8px !important}
     .day-indicator,.day-indicator-below{font-size:9px !important}
     #g-corner-label{font-size:8px !important}
-
-    /* ── Category header rows: scroll normally on mobile ── */
     .g-family{position:relative !important;top:auto !important}
-
-    /* ── Lifecycle phase date boxes: each date gets its own full-width row ── */
-    .lc-date-grid{grid-template-columns:1fr !important}
-    /* Scale down the lifecycle SVG bar to fit mobile width */
-    .lc-date-grid ~ * svg,.pd-section svg{max-width:100%;height:auto}
-
-    /* ── Timeline touch ── */
     #view-gantt{touch-action:pan-x pan-y}
 
-    /* ── + New Plant button: show just "+" on mobile ── */
-    #new-plant-label,#new-plant-btn .arrow{display:none}
-    #new-plant-btn{padding:4px 10px;font-size:13px;white-space:nowrap}
+    /* ── Lifecycle dates ── */
+    .lc-date-grid{grid-template-columns:1fr !important}
+    .lc-date-grid ~ * svg,.pd-section svg{max-width:100%;height:auto}
 
-    /* ── Plant detail breadcrumb: compact single line ── */
+    /* ── + New Plant: show just "+" ── */
+    #new-plant-label{display:none}
+    #new-plant-btn{padding:5px 10px;font-size:13px;white-space:nowrap}
+
+    /* ── Plant detail breadcrumb: compact ── */
     #plant-detail-view>div:first-child{flex-wrap:nowrap;gap:6px;padding:7px 10px}
     #pd-breadcrumb{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px}
     #pd-title{font-size:12px !important;white-space:nowrap;overflow:hidden}
     #pd-name-display{font-size:12px !important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px}
     #pd-id-display{font-size:11px !important}
 
-    /* ── Side nav: start collapsed on mobile ── */
-    #photos-nav-sidebar,#notes-nav-sidebar{width:0;min-width:0;overflow:hidden;border-right:none}
+    /* ── Side nav: collapsed by default, expand on tap ── */
     #photos-nav-sidebar,#notes-nav-sidebar{
       width:0;min-width:0;overflow:hidden;flex-shrink:0;
       transition:width .22s ease;border-right:none;
@@ -780,48 +776,51 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     .mob-snav-btn{
       display:inline-flex !important;
       background:var(--nav);color:#fff;border:none;border-radius:6px;
-      padding:5px 10px;font-size:11px;cursor:pointer;font-family:inherit;
-      align-items:center;gap:5px;flex-shrink:0;
+      padding:8px 12px;font-size:12px;cursor:pointer;font-family:inherit;
+      align-items:center;gap:5px;flex-shrink:0;min-height:36px;
     }
     .mob-snav-overlay{display:none}
-    .snav-content-hdr{padding-left:0}
+    .snav-content-hdr{padding-left:0;gap:8px;padding:10px 12px}
+
+    /* ── Note cards on mobile ── */
+    .notes-entry{margin-bottom:14px}
+    .notes-entry-hdr{padding:12px 14px}
+    .notes-entry-body{padding:14px;font-size:14px;line-height:1.8}
+    .note-edit-btn,.inline-del-btn{min-height:36px;padding:6px 14px !important;font-size:12px !important}
+
+    /* ── Content body: less outer padding so cards use more width ── */
+    .snav-content-body{padding:12px}
 
     /* ── Plant log ── */
-    #view-log{height:calc(100dvh - 52px)}
+    #view-log{height:calc(100dvh - 48px)}
     .log-form.open{grid-template-columns:1fr !important}
     .log-form.open .log-field.full{grid-column:1}
-
-    /* ── Plant detail tabs ── */
-    .pd-tabs-bar{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
-    .pd-tabs-bar::-webkit-scrollbar{display:none}
-    .pd-tab{white-space:nowrap;flex-shrink:0}
 
     /* ── Bulk panels / modals: full width ── */
     .bulk-sheet{min-width:0 !important;width:calc(100vw - 32px) !important;max-width:100% !important;padding:16px !important}
     .bulk-body{padding:0 !important}
     [style*="min-width:420px"],[style*="min-width:380px"],[style*="min-width:360px"]{min-width:0 !important;width:calc(100vw - 32px) !important}
 
-    /* ── Photo/harvest grids ── */
+    /* ── Photo grids / harvest table / tooltips ── */
     .plog-photo-grid{grid-template-columns:repeat(3,1fr) !important}
     .pd-harvest-table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
-
-    /* ── Tooltips ── */
     #tl-tooltip{width:200px !important}
   }
 
-  /* ── Mobile-only elements hidden on desktop ── */
+  /* ── Desktop: hide mobile-only elements ── */
   .mob-snav-btn{display:none}
   .mob-snav-overlay{display:none}
-  /* ── Side nav collapse ── */
+
+  /* ── Side nav collapse (all breakpoints) ── */
   #photos-nav-sidebar,#notes-nav-sidebar{transition:width .2s ease,min-width .2s ease}
   .snav-collapsed{width:0 !important;min-width:0 !important;overflow:hidden !important;border-right:none !important}
   .snav-expand-btn{background:transparent;border:none;cursor:pointer;color:var(--text-secondary);font-size:13px;padding:0 4px 0 0;line-height:1;flex-shrink:0}
   .snav-expand-btn:hover{color:var(--text-body)}
-  .snav-header{padding:8px 12px 5px;font-size:8px;font-weight:700;color:var(--text-secondary);letter-spacing:.08em;text-transform:uppercase;border-bottom:0.5px solid var(--border);position:sticky;top:0;background:var(--fbg);z-index:2}
-  .snav-year{display:flex;align-items:center;gap:6px;padding:7px 12px;cursor:pointer;font-size:12px;font-weight:700;color:var(--nav);background:var(--fbg);border-bottom:0.5px solid var(--border);user-select:none}
+  .snav-header{padding:10px 12px 8px;font-size:10px;font-weight:700;color:var(--text-secondary);letter-spacing:.08em;text-transform:uppercase;border-bottom:0.5px solid var(--border);position:sticky;top:0;background:var(--fbg);z-index:2}
+  .snav-year{display:flex;align-items:center;gap:6px;padding:11px 12px;cursor:pointer;font-size:12px;font-weight:700;color:var(--nav);background:var(--fbg);border-bottom:0.5px solid var(--border);user-select:none;min-height:44px}
   .snav-year:hover{background:var(--border)}
   body.dark .snav-year{color:#4FA66A}
-  .snav-month{display:flex;justify-content:space-between;align-items:center;padding:5px 12px 5px 22px;cursor:pointer;font-size:11px;color:var(--text-body);user-select:none}
+  .snav-month{display:flex;justify-content:space-between;align-items:center;padding:10px 12px 10px 22px;cursor:pointer;font-size:11px;color:var(--text-body);user-select:none;min-height:44px}
   .snav-month:hover{background:var(--border)}
   .snav-month.active{background:rgba(30,91,53,.1);border-right:2px solid var(--nav);color:var(--nav);font-weight:600}
   body.dark .snav-month.active{background:rgba(79,166,106,.12);border-right-color:#4FA66A;color:#4FA66A}
@@ -5852,7 +5851,7 @@ function _photosRenderSidebar(byYr){
   let h='<div class="snav-header" style="display:flex;align-items:center;justify-content:space-between">'
     +'<span>Browse by date</span>'
     +'<button onclick="toggleSnavCollapse(\'photos\')" title="Collapse sidebar" '
-    +'style="background:transparent;border:none;cursor:pointer;color:var(--text-secondary);font-size:13px;padding:0 2px;line-height:1">◀</button>'
+    +'style="background:transparent;border:none;cursor:pointer;color:var(--text-secondary);font-size:14px;padding:4px 6px;line-height:1;min-width:28px;min-height:28px;display:flex;align-items:center;justify-content:center">◀</button>'
     +'</div>';
   h+='<div class="snav-month '+(allActive?'active':'')+'" onclick="photosSelectPeriod(null,null)" style="padding:6px 12px;font-weight:600">All photos <span class="snav-count">'+window._photosData.length+'</span></div>';
   years.forEach(yr=>{
@@ -6060,7 +6059,7 @@ function _notesRenderSidebar(byYr){
   let h=`<div class="snav-header" style="display:flex;align-items:center;justify-content:space-between">
     <span>Browse by date</span>
     <button onclick="toggleSnavCollapse('notes')" title="Collapse sidebar"
-      style="background:transparent;border:none;cursor:pointer;color:var(--text-secondary);font-size:13px;padding:0 2px;line-height:1">&#9664;</button>
+      style="background:transparent;border:none;cursor:pointer;color:var(--text-secondary);font-size:14px;padding:4px 6px;line-height:1;min-width:28px;min-height:28px;display:flex;align-items:center;justify-content:center">&#9664;</button>
   </div>`;
   h+=`<div class="snav-month ${allActive?'active':''}" onclick="notesSelectPeriod(null,null)" style="padding:6px 12px;font-weight:600">
     All notes <span class="snav-count">${window._notesData.length}</span>
@@ -6120,10 +6119,10 @@ function _notesRenderContent(byYM){
   const notesHtml=items.map(n=>`
     <div class="notes-entry">
       <div class="notes-entry-hdr">
-        <span class="plog-date-lbl">${new Date(n.note_date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"long",day:"numeric",year:"numeric"})}</span>
-        <div style="display:flex;gap:6px">
-          <button onclick="editGardenNote('${n.id}','${n.note_date}',this)" class="plog-del-group note-edit-btn">Edit</button>
-          <button onclick="deleteGardenNote('${n.id}')" class="inline-del-btn">Delete</button>
+        <span class="plog-date-lbl" style="font-size:11px;color:var(--text-secondary);font-weight:500">${new Date(n.note_date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"long",day:"numeric",year:"numeric"})}</span>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button onclick="editGardenNote('${n.id}','${n.note_date}',this)" class="plog-del-group note-edit-btn" style="padding:6px 14px;font-size:11px">Edit</button>
+          <button onclick="deleteGardenNote('${n.id}')" class="inline-del-btn" style="padding:6px 14px;font-size:11px">Delete</button>
         </div>
       </div>
       <div class="notes-entry-body">${n.content.replace(/</g,'&lt;')}</div>
@@ -6134,10 +6133,12 @@ function _notesRenderContent(byYM){
     <div class="snav-content-hdr">
       ${notesExpandBtn}
       <button class="mob-snav-btn" onclick="mobToggleSnav('notes')">☰</button>
-      <span style="font-size:14px;font-weight:600;color:var(--nav-text,var(--nav))">${title}</span>
-      <span style="font-size:10px;color:var(--text-secondary)">${items.length} note${items.length!==1?'s':''}</span>
+      <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+        <span style="font-size:14px;font-weight:600;color:var(--nav-text,var(--nav));white-space:nowrap">${title}</span>
+        <span style="font-size:10px;color:var(--text-secondary)">${items.length} note${items.length!==1?'s':''}</span>
+      </div>
       <button onclick="window._notesShowForm=!window._notesShowForm;_notesRenderContent(_notesGroupByYM(window._notesData).byYM)"
-        style="margin-left:auto;background:var(--nav);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:600">
+        style="margin-left:auto;background:var(--nav);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:600;white-space:nowrap;flex-shrink:0">
         + Add Note
       </button>
     </div>
