@@ -51,7 +51,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     --nav-text:#4FA66A;
     color-scheme:dark;
   }
-  body{font-family:'DM Mono','Courier New',monospace;background:var(--bg);color:var(--text-body);min-height:100vh;overflow:hidden}
+  html{overflow:hidden;overscroll-behavior:none}
+  body{font-family:'DM Mono','Courier New',monospace;background:var(--bg);color:var(--text-body);min-height:100vh;overflow:hidden;overscroll-behavior:none}
   button{font-family:inherit;cursor:pointer;transition:all .15s}
   ::-webkit-scrollbar{height:5px;width:5px}
   ::-webkit-scrollbar-track{background:var(--fbg)}
@@ -698,6 +699,20 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
      MOBILE RESPONSIVE  (≤ 768px)
   ══════════════════════════════════════════ */
   @media (max-width:768px){
+    /* ── Viewport lockdown — prevent drag/bounce/overflow on iOS ── */
+    html,body{overflow:hidden !important;overscroll-behavior:none !important;max-width:100vw}
+    /* Fix heights: 100vh → 100dvh with correct mobile offsets */
+    #main{height:calc(100dvh - 48px) !important;overflow:hidden}
+    #view-plants,#view-log{height:calc(100dvh - 88px) !important;overflow:hidden}
+    #view-photos,#view-notes,#view-settings,#view-admin{height:calc(100dvh - 48px) !important}
+    .ph-wrap{height:calc(100dvh - 48px) !important}
+    #plant-log-list-view{height:calc(100dvh - 88px) !important}
+    /* Contain scroll bounce inside scroll containers, not the page */
+    #pd-content,#notes-content-panel,#photos-content-panel,
+    .catalog-table-wrap,.snav-content-body,.plog-list{
+      overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch
+    }
+
     /* ── Nav: sticky, pan-x, emoji hidden, bigger touch targets ── */
     #topnav{
       position:sticky;top:0;z-index:300;
@@ -2713,59 +2728,34 @@ function openBrowseSheet(type){
   const sheet=document.getElementById('browse-sheet');
   const content=document.getElementById('browse-sheet-content');
   if(!overlay||!sheet||!content) return;
-
-  // Build sheet items
-  const isDark=document.body.classList.contains('dark');
-  const itemBase='display:flex;justify-content:space-between;align-items:center;padding:13px 20px;border-bottom:0.5px solid var(--border);cursor:pointer;font-family:"DM Mono",monospace;';
-  const countStyle='font-size:10px;color:var(--text-secondary)';
-
-  let h=`<div style="padding:14px 20px 10px;border-bottom:1px solid var(--border)">
-    <div style="font-size:10px;font-weight:700;color:var(--text-secondary);letter-spacing:.08em;text-transform:uppercase">Browse by date</div>
-  </div>`;
-
+  const rowBase='border-bottom:0.5px solid var(--border);cursor:pointer;font-family:"DM Mono",monospace;-webkit-tap-highlight-color:rgba(79,166,106,.12);';
+  let h='<div style="padding:14px 20px 10px;border-bottom:1px solid var(--border)"><div style="font-size:10px;font-weight:700;color:var(--text-secondary);letter-spacing:.08em;text-transform:uppercase">Browse by date</div></div>';
+  const buildItems=(selYear,selMonth,dataArr,byYr,onAll,onYr,onMo)=>{
+    const allA=selYear===null;
+    h+='<div style="'+rowBase+'display:flex;justify-content:space-between;align-items:center;padding:13px 20px;font-size:12px;font-weight:600;color:'+(allA?'#4FA66A':'var(--text-body)')+(allA?';background:rgba(79,166,106,.07)':'')+'" onclick="'+onAll+'"><span>All '+(type==='photos'?'photos':'notes')+(allA?' ✓':'')+' </span><span style="font-size:10px;color:var(--text-secondary)">'+dataArr.length+'</span></div>';
+    Object.keys(byYr).map(Number).sort((a,b)=>b-a).forEach(yr=>{
+      const yrSel=selYear===yr&&selMonth===null;
+      h+='<div style="'+rowBase+'display:flex;justify-content:space-between;align-items:center;padding:11px 20px;font-size:12px;font-weight:700;background:var(--fbg);color:'+(selYear===yr?'#4FA66A':'var(--nav)')+'" onclick="'+onYr(yr)+'"><div style="display:flex;align-items:center;gap:6px"><span>'+yr+'</span>'+(yrSel?'<span style="font-size:9px;color:#4FA66A;font-weight:400">— all ✓</span>':'')+'</div><span style="font-size:10px;color:var(--text-secondary)">'+byYr[yr].count+'</span></div>';
+      byYr[yr].months.forEach(m=>{
+        const isSel=selYear===yr&&selMonth===m.mo;
+        h+='<div style="'+rowBase+(isSel?'background:rgba(79,166,106,.07);':'')+'" onclick="'+onMo(yr,m.mo)+'"><div style="display:flex;align-items:center;width:100%"><div style="width:3px;align-self:stretch;background:'+(isSel?'#4FA66A':'var(--border)')+';border-radius:0 2px 2px 0;flex-shrink:0;margin-right:16px"></div><span style="font-size:12px;padding:13px 0;display:block;color:'+(isSel?'#4FA66A':'var(--text-body)')+';font-weight:'+(isSel?'600':'400')+'">'+m.label+(isSel?' ✓':'')+'</span><span style="font-size:10px;color:'+(isSel?'#4FA66A':'var(--text-secondary)')+';margin-left:auto;padding-right:20px">'+m.count+'</span></div></div>';
+      });
+    });
+  };
   if(type==='photos'){
     const{byYr}=_photosGroupByYM(window._photosData);
-    const years=Object.keys(byYr).map(Number).sort((a,b)=>b-a);
-    const allActive=window._photosSelYear===null;
-    h+=`<div style="${itemBase}font-size:12px;font-weight:600;color:${allActive?'#4FA66A':'var(--text-body)'};${allActive?'background:rgba(79,166,106,.07)':''}" onclick="photosSelectPeriod(null,null);closeBrowseSheet()">
-      All photos ${allActive?'<span style="color:#4FA66A">✓</span>':''}
-      <span style="${countStyle}">${window._photosData.length}</span>
-    </div>`;
-    years.forEach(yr=>{
-      h+=`<div style="${itemBase}font-size:11px;font-weight:700;color:${window._photosSelYear===yr&&window._photosSelMonth===null?'#4FA66A':'var(--nav)'};background:var(--fbg)">
-        ${yr}<span style="${countStyle}">${byYr[yr].count}</span>
-      </div>`;
-      byYr[yr].months.forEach(m=>{
-        const isSel=window._photosSelYear===yr&&window._photosSelMonth===m.mo;
-        h+=`<div style="${itemBase}padding-left:32px;font-size:12px;color:${isSel?'#4FA66A':'var(--text-body)'};${isSel?'background:rgba(79,166,106,.07)':''}" onclick="photosSelectPeriod(${yr},${m.mo});closeBrowseSheet()">
-          ${m.label} ${isSel?'<span style="color:#4FA66A">✓</span>':''}
-          <span style="${countStyle}${isSel?';color:#4FA66A;font-weight:700':''}">${m.count}</span>
-        </div>`;
-      });
-    });
+    buildItems(window._photosSelYear,window._photosSelMonth,window._photosData,byYr,
+      'photosSelectPeriod(null,null);closeBrowseSheet()',
+      yr=>'photosSelectPeriod('+yr+',null);closeBrowseSheet()',
+      (yr,mo)=>'photosSelectPeriod('+yr+','+mo+');closeBrowseSheet()');
   } else {
     const{byYr}=_notesGroupByYM(window._notesData);
-    const years=Object.keys(byYr).map(Number).sort((a,b)=>b-a);
-    const allActive=window._notesSelYear===null;
-    h+=`<div style="${itemBase}font-size:12px;font-weight:600;color:${allActive?'#4FA66A':'var(--text-body)'};${allActive?'background:rgba(79,166,106,.07)':''}" onclick="notesSelectPeriod(null,null);closeBrowseSheet()">
-      All notes ${allActive?'<span style="color:#4FA66A">✓</span>':''}
-      <span style="${countStyle}">${window._notesData.length}</span>
-    </div>`;
-    years.forEach(yr=>{
-      h+=`<div style="${itemBase}font-size:11px;font-weight:700;color:${window._notesSelYear===yr&&window._notesSelMonth===null?'#4FA66A':'var(--nav)'};background:var(--fbg)">
-        ${yr}<span style="${countStyle}">${byYr[yr].count}</span>
-      </div>`;
-      byYr[yr].months.forEach(m=>{
-        const isSel=window._notesSelYear===yr&&window._notesSelMonth===m.mo;
-        h+=`<div style="${itemBase}padding-left:32px;font-size:12px;color:${isSel?'#4FA66A':'var(--text-body)'};${isSel?'background:rgba(79,166,106,.07)':''}" onclick="notesSelectPeriod(${yr},${m.mo});closeBrowseSheet()">
-          ${m.label} ${isSel?'<span style="color:#4FA66A">✓</span>':''}
-          <span style="${countStyle}${isSel?';color:#4FA66A;font-weight:700':''}">${m.count}</span>
-        </div>`;
-      });
-    });
+    buildItems(window._notesSelYear,window._notesSelMonth,window._notesData,byYr,
+      'notesSelectPeriod(null,null);closeBrowseSheet()',
+      yr=>'notesSelectPeriod('+yr+',null);closeBrowseSheet()',
+      (yr,mo)=>'notesSelectPeriod('+yr+','+mo+');closeBrowseSheet()');
   }
-  h+=`<div style="height:20px"></div>`; // bottom breathing room
-
+  h+='<div style="height:24px"></div>';
   content.innerHTML=h;
   overlay.style.display='block';
   sheet.style.display='block';
@@ -2776,7 +2766,7 @@ function closeBrowseSheet(){
   const overlay=document.getElementById('browse-sheet-overlay');
   const sheet=document.getElementById('browse-sheet');
   if(overlay) overlay.style.display='none';
-  if(sheet){ sheet.style.display='none'; sheet.classList.remove('sheet-open'); }
+  if(sheet){sheet.style.display='none';sheet.classList.remove('sheet-open');}
 }
 
 // ── Auth functions ────────────────────────────────────────────────────────────
