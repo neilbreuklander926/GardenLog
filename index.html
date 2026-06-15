@@ -763,7 +763,12 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     #pd-name-display{font-size:12px !important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px}
     #pd-id-display{font-size:11px !important}
 
-    /* ── Side nav: collapsed by default, expand on tap ── */
+    /* ── Sticky toolbar (stays visible when page scrolls on mobile) ── */
+    #toolbar{position:sticky;top:48px;z-index:290}
+
+    /* ── Sidebar toggle visible on mobile; label text hidden ── */
+    .snav-toggle-btn{display:inline-flex !important}
+    .snav-hdr-label{display:none}
     #photos-nav-sidebar,#notes-nav-sidebar{
       width:0;min-width:0;overflow:hidden;flex-shrink:0;
       transition:width .22s ease;border-right:none;
@@ -771,12 +776,15 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     #photos-nav-sidebar.mob-open,#notes-nav-sidebar.mob-open{
       width:210px;min-width:210px;border-right:0.5px solid var(--border);
     }
-    .mob-snav-btn{
+    /* ── Unified sidebar toggle button (replaces ☰ and ◀/▶) ── */
+    .snav-toggle-btn{
       display:inline-flex !important;
-      background:var(--nav);color:#fff;border:none;border-radius:6px;
-      padding:8px 12px;font-size:12px;cursor:pointer;font-family:inherit;
-      align-items:center;gap:5px;flex-shrink:0;min-height:36px;
+      align-items:center;justify-content:center;
+      background:transparent;border:1px solid var(--border);border-radius:6px;
+      cursor:pointer;padding:5px;flex-shrink:0;color:var(--text-secondary);
+      min-width:30px;min-height:30px;transition:background .12s;
     }
+    .snav-toggle-btn:hover{background:var(--fbg)}
     .mob-snav-overlay{display:none}
     .snav-content-hdr{padding-left:0;gap:8px;padding:10px 12px}
 
@@ -808,9 +816,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
   body.dark .log-saved-badge{background:rgba(79,166,106,.12);color:#4FA66A;border-color:rgba(79,166,106,.3)}
   body.dark .status-dot.active{background:#4FA66A}
-  /* ── Desktop: hide mobile-only elements ── */
-  .mob-snav-btn{display:none}
+  /* ── Desktop: hide mobile-only elements; show sidebar always ── */
+  .snav-toggle-btn{display:none} /* desktop sidebar is always visible, no toggle needed */
   .mob-snav-overlay{display:none}
+  .snav-hdr-label{display:inline} /* show text labels in header buttons on desktop */
 
 
   /* ── Reusable small primary button (replaces repeated inline styles) ── */
@@ -822,8 +831,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   /* ── Side nav collapse (all breakpoints) ── */
   #photos-nav-sidebar,#notes-nav-sidebar{transition:width .2s ease,min-width .2s ease}
   .snav-collapsed{width:0 !important;min-width:0 !important;overflow:hidden !important;border-right:none !important}
-  .snav-expand-btn{background:transparent;border:none;cursor:pointer;color:var(--text-secondary);font-size:13px;padding:0 4px 0 0;line-height:1;flex-shrink:0}
-  .snav-expand-btn:hover{color:var(--text-body)}
+  .snav-expand-btn{background:transparent;border:none;cursor:pointer;color:var(--text-secondary);padding:4px;line-height:1;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;border-radius:4px}
+  .snav-expand-btn:hover{background:var(--fbg);color:var(--text-body)}
   .snav-header{padding:10px 12px 8px;font-size:10px;font-weight:700;color:var(--text-secondary);letter-spacing:.08em;text-transform:uppercase;border-bottom:0.5px solid var(--border);position:sticky;top:0;background:var(--fbg);z-index:2}
   .snav-year{display:flex;align-items:center;gap:6px;padding:11px 12px;cursor:pointer;font-size:12px;font-weight:700;color:var(--nav);background:var(--fbg);border-bottom:0.5px solid var(--border);user-select:none;min-height:44px}
   .snav-year:hover{background:var(--border)}
@@ -2665,8 +2674,14 @@ function _tlIconTTHtml(log,type,date){
   return '';
 }
 
-window._photosNavCollapsed=false;
-window._notesNavCollapsed=false;
+// Sidebar panel icon — matches image reference
+function _snavIcon(size){
+  size=size||16;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block">
+    <rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/>
+    <line x1="5.5" y1="1" x2="5.5" y2="15" stroke="currentColor" stroke-width="1.4"/>
+  </svg>`;
+}
 
 function toggleSnavCollapse(type){
   if(type==='photos'){
@@ -2678,7 +2693,6 @@ function toggleSnavCollapse(type){
     const sb=document.getElementById('notes-nav-sidebar');
     if(sb) sb.classList.toggle('snav-collapsed',window._notesNavCollapsed);
   }
-  // Re-render content header to show/hide the expand button
   if(type==='photos') _photosRenderContent();
   else _notesRenderContent(_notesGroupByYM(window._notesData).byYM);
 }
@@ -5854,11 +5868,7 @@ function _photosRenderSidebar(byYr){
   const isCollapsed=window._photosNavCollapsed;
   const years=Object.keys(byYr).map(Number).sort((a,b)=>b-a);
   const allActive=window._photosSelYear===null;
-  let h='<div class="snav-header" style="display:flex;align-items:center;justify-content:space-between">'
-    +'<span>Browse by date</span>'
-    +'<button onclick="toggleSnavCollapse(\'photos\')" title="Collapse sidebar" '
-    +'style="background:transparent;border:none;cursor:pointer;color:var(--text-secondary);font-size:14px;padding:4px 6px;line-height:1;min-width:28px;min-height:28px;display:flex;align-items:center;justify-content:center">◀</button>'
-    +'</div>';
+  let h='<div class="snav-header">Browse by date</div>';
   h+='<div class="snav-month '+(allActive?'active':'')+'" onclick="photosSelectPeriod(null,null)" style="padding:6px 12px;font-weight:600">All photos <span class="snav-count">'+window._photosData.length+'</span></div>';
   years.forEach(yr=>{
     const isExp=window._photosExpandedYears.has(yr);
@@ -5932,8 +5942,15 @@ function _photosRenderContent(){
     +'<button class="ptp-opt '+(showAll?'active':'')+'" onclick="photosToggleSource(true)">All photos</button>'
     +'</div>';
   const isCollapsed=window._photosNavCollapsed;
-  const expandBtn=isCollapsed?'<button class="snav-expand-btn" onclick="toggleSnavCollapse(\'photos\')" title="Expand sidebar">▶</button>':'';
-  cp.innerHTML='<div class="snav-content-hdr">'+expandBtn+'<button class="mob-snav-btn" onclick="mobToggleSnav(\'photos\')">☰</button><span style="font-size:14px;font-weight:600;color:var(--nav-text,var(--nav))">'+title+'</span><span style="font-size:10px;color:var(--text-secondary)">'+totalCount+' photo'+(totalCount!==1?'s':'')+'</span>'+toggleHtml+'<button onclick="window._photosShowUpload=!window._photosShowUpload;_photosRenderContent()" style="margin-left:auto;background:var(--nav);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:600">&#128247; Upload</button></div><div class="snav-content-body">'+uploadHtml+histHtml+'</div>';
+  const sidebarBtn=`<button class="${isCollapsed?'snav-expand-btn':'snav-expand-btn'} snav-toggle-btn" onclick="toggleSnavCollapse('photos')" title="${isCollapsed?'Show sidebar':'Hide sidebar'}">${_snavIcon(15)}</button>`;
+  cp.innerHTML='<div class="snav-content-hdr">'+sidebarBtn
+    +'<div style="min-width:0;flex:1;display:flex;flex-direction:column;gap:1px;overflow:hidden">'
+    +'<span style="font-size:13px;font-weight:600;color:var(--nav-text,var(--nav));white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+title+'</span>'
+    +'<span style="font-size:10px;color:var(--text-secondary)">'+totalCount+' photo'+(totalCount!==1?'s':'')+'</span>'
+    +'</div>'
+    +toggleHtml
+    +'<button onclick="window._photosShowUpload=!window._photosShowUpload;_photosRenderContent()" class="btn-primary-sm" title="Upload photos">📷 <span class="snav-hdr-label">Upload</span></button>'
+    +'</div><div class="snav-content-body">'+uploadHtml+histHtml+'</div>';
 }
 function buildPhotoUploadForm(){
   return '<div class="pd-section" style="margin-bottom:12px">'
@@ -5953,6 +5970,8 @@ function buildPhotoUploadForm(){
     +'</div></div>';
 }
 async function renderGardenPhotos(){
+  // On mobile, default sidebar to collapsed
+  if(window.innerWidth<=768 && window._photosNavCollapsed===false) window._photosNavCollapsed=true;
   const[{data:gardenPhotos},{data:plantPhotos}]=await Promise.all([
     supa.from('garden_photos').select('*').order('photo_date',{ascending:false}).order('created_at',{ascending:true}),
     supa.from('plant_photos').select('*').order('photo_date',{ascending:false}).order('created_at',{ascending:true})
@@ -6062,11 +6081,7 @@ function _notesRenderSidebar(byYr){
   const sb=document.getElementById('notes-nav-sidebar'); if(!sb) return;
   const years=Object.keys(byYr).map(Number).sort((a,b)=>b-a);
   const allActive=window._notesSelYear===null;
-  let h=`<div class="snav-header" style="display:flex;align-items:center;justify-content:space-between">
-    <span>Browse by date</span>
-    <button onclick="toggleSnavCollapse('notes')" title="Collapse sidebar"
-      style="background:transparent;border:none;cursor:pointer;color:var(--text-secondary);font-size:14px;padding:4px 6px;line-height:1;min-width:28px;min-height:28px;display:flex;align-items:center;justify-content:center">&#9664;</button>
-  </div>`;
+  let h=`<div class="snav-header">Browse by date</div>`;
   h+=`<div class="snav-month ${allActive?'active':''}" onclick="notesSelectPeriod(null,null)" style="padding:6px 12px;font-weight:600">
     All notes <span class="snav-count">${window._notesData.length}</span>
   </div>`;
@@ -6134,18 +6149,16 @@ function _notesRenderContent(byYM){
       <div class="notes-entry-body">${n.content.replace(/</g,'&lt;')}</div>
     </div>`).join("")||`<div style="color:var(--text-secondary);font-size:11px;padding:20px 0">No notes for this period.</div>`;
   const isNotesCollapsed=window._notesNavCollapsed;
-  const notesExpandBtn=isNotesCollapsed?`<button class="snav-expand-btn" onclick="toggleSnavCollapse('notes')" title="Expand sidebar">&#9654;</button>`:'';
+  const notesSidebarBtn=`<button class="snav-expand-btn snav-toggle-btn" onclick="toggleSnavCollapse('notes')" title="${isNotesCollapsed?'Show sidebar':'Hide sidebar'}">${_snavIcon(15)}</button>`;
   cp.innerHTML=`
     <div class="snav-content-hdr">
-      ${notesExpandBtn}
-      <button class="mob-snav-btn" onclick="mobToggleSnav('notes')">☰</button>
-      <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
-        <span style="font-size:14px;font-weight:600;color:var(--nav-text,var(--nav));white-space:nowrap">${title}</span>
+      ${notesSidebarBtn}
+      <div style="min-width:0;flex:1;display:flex;flex-direction:column;gap:1px;overflow:hidden">
+        <span style="font-size:13px;font-weight:600;color:var(--nav-text,var(--nav));white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${title}</span>
         <span style="font-size:10px;color:var(--text-secondary)">${items.length} note${items.length!==1?'s':''}</span>
       </div>
       <button onclick="window._notesShowForm=!window._notesShowForm;_notesRenderContent(_notesGroupByYM(window._notesData).byYM)"
-        style="margin-left:auto;background:var(--nav);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:600;white-space:nowrap;flex-shrink:0">
-        + Add Note
+        class="btn-primary-sm" title="Add note">+ <span class="snav-hdr-label">Add Note</span>
       </button>
     </div>
     <div class="snav-content-body">
@@ -6155,6 +6168,7 @@ function _notesRenderContent(byYM){
 }
 
 async function renderGardenNotes(){
+  if(window.innerWidth<=768 && window._notesNavCollapsed===false) window._notesNavCollapsed=true;
   const {data:notes}=await supa.from('garden_notes').select('*').order('note_date',{ascending:false});
   window._notesData=notes||[];
   const {byYM,byYr}=_notesGroupByYM(window._notesData);
