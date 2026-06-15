@@ -769,6 +769,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     /* ── Sidebar toggle visible on mobile; label text hidden ── */
     .snav-toggle-btn{display:inline-flex !important}
     .snav-hdr-label{display:none}
+
+    /* ── Hide desktop sidebar on mobile — bottom sheet used instead ── */
+    #photos-nav-sidebar,#notes-nav-sidebar{display:none !important}
+
+    /* ── Bottom sheet slide-up animation ── */
+    #browse-sheet.sheet-open{animation:sheet-up .26s cubic-bezier(.32,1,.5,1) forwards}
+    @keyframes sheet-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
     #photos-nav-sidebar,#notes-nav-sidebar{
       width:0;min-width:0;overflow:hidden;flex-shrink:0;
       transition:width .22s ease;border-right:none;
@@ -1503,6 +1510,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     </div>
   </div>
 </div>
+<!-- Mobile bottom sheet — Notes & Photos date browsing -->
+<div id="browse-sheet-overlay" onclick="closeBrowseSheet()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:8000"></div>
+<div id="browse-sheet" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:8001;background:var(--card);border-radius:16px 16px 0 0;max-height:72vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,0px)">
+  <div style="width:36px;height:3px;background:var(--border);border-radius:2px;margin:10px auto 0;position:sticky;top:0"></div>
+  <div id="browse-sheet-content"></div>
+</div>
+
 <!-- Timeline tooltip -->
 <div id="tl-tooltip"></div>
 <!-- Health Event Edit Panel -->
@@ -2697,10 +2711,75 @@ function toggleSnavCollapse(type){
   else _notesRenderContent(_notesGroupByYM(window._notesData).byYM);
 }
 
-function mobToggleSnav(type){
-  const sb=document.getElementById(type+'-nav-sidebar');
-  if(!sb) return;
-  sb.classList.toggle('mob-open');
+function openBrowseSheet(type){
+  const overlay=document.getElementById('browse-sheet-overlay');
+  const sheet=document.getElementById('browse-sheet');
+  const content=document.getElementById('browse-sheet-content');
+  if(!overlay||!sheet||!content) return;
+
+  // Build sheet items
+  const isDark=document.body.classList.contains('dark');
+  const itemBase='display:flex;justify-content:space-between;align-items:center;padding:13px 20px;border-bottom:0.5px solid var(--border);cursor:pointer;font-family:"DM Mono",monospace;';
+  const countStyle='font-size:10px;color:var(--text-secondary)';
+
+  let h=`<div style="padding:14px 20px 10px;border-bottom:1px solid var(--border)">
+    <div style="font-size:10px;font-weight:700;color:var(--text-secondary);letter-spacing:.08em;text-transform:uppercase">Browse by date</div>
+  </div>`;
+
+  if(type==='photos'){
+    const{byYr}=_photosGroupByYM(window._photosData);
+    const years=Object.keys(byYr).map(Number).sort((a,b)=>b-a);
+    const allActive=window._photosSelYear===null;
+    h+=`<div style="${itemBase}font-size:12px;font-weight:600;color:${allActive?'#4FA66A':'var(--text-body)'};${allActive?'background:rgba(79,166,106,.07)':''}" onclick="photosSelectPeriod(null,null);closeBrowseSheet()">
+      All photos ${allActive?'<span style="color:#4FA66A">✓</span>':''}
+      <span style="${countStyle}">${window._photosData.length}</span>
+    </div>`;
+    years.forEach(yr=>{
+      h+=`<div style="${itemBase}font-size:11px;font-weight:700;color:${window._photosSelYear===yr&&window._photosSelMonth===null?'#4FA66A':'var(--nav)'};background:var(--fbg)">
+        ${yr}<span style="${countStyle}">${byYr[yr].count}</span>
+      </div>`;
+      byYr[yr].months.forEach(m=>{
+        const isSel=window._photosSelYear===yr&&window._photosSelMonth===m.mo;
+        h+=`<div style="${itemBase}padding-left:32px;font-size:12px;color:${isSel?'#4FA66A':'var(--text-body)'};${isSel?'background:rgba(79,166,106,.07)':''}" onclick="photosSelectPeriod(${yr},${m.mo});closeBrowseSheet()">
+          ${m.label} ${isSel?'<span style="color:#4FA66A">✓</span>':''}
+          <span style="${countStyle}${isSel?';color:#4FA66A;font-weight:700':''}">${m.count}</span>
+        </div>`;
+      });
+    });
+  } else {
+    const{byYr}=_notesGroupByYM(window._notesData);
+    const years=Object.keys(byYr).map(Number).sort((a,b)=>b-a);
+    const allActive=window._notesSelYear===null;
+    h+=`<div style="${itemBase}font-size:12px;font-weight:600;color:${allActive?'#4FA66A':'var(--text-body)'};${allActive?'background:rgba(79,166,106,.07)':''}" onclick="notesSelectPeriod(null,null);closeBrowseSheet()">
+      All notes ${allActive?'<span style="color:#4FA66A">✓</span>':''}
+      <span style="${countStyle}">${window._notesData.length}</span>
+    </div>`;
+    years.forEach(yr=>{
+      h+=`<div style="${itemBase}font-size:11px;font-weight:700;color:${window._notesSelYear===yr&&window._notesSelMonth===null?'#4FA66A':'var(--nav)'};background:var(--fbg)">
+        ${yr}<span style="${countStyle}">${byYr[yr].count}</span>
+      </div>`;
+      byYr[yr].months.forEach(m=>{
+        const isSel=window._notesSelYear===yr&&window._notesSelMonth===m.mo;
+        h+=`<div style="${itemBase}padding-left:32px;font-size:12px;color:${isSel?'#4FA66A':'var(--text-body)'};${isSel?'background:rgba(79,166,106,.07)':''}" onclick="notesSelectPeriod(${yr},${m.mo});closeBrowseSheet()">
+          ${m.label} ${isSel?'<span style="color:#4FA66A">✓</span>':''}
+          <span style="${countStyle}${isSel?';color:#4FA66A;font-weight:700':''}">${m.count}</span>
+        </div>`;
+      });
+    });
+  }
+  h+=`<div style="height:20px"></div>`; // bottom breathing room
+
+  content.innerHTML=h;
+  overlay.style.display='block';
+  sheet.style.display='block';
+  sheet.classList.add('sheet-open');
+}
+
+function closeBrowseSheet(){
+  const overlay=document.getElementById('browse-sheet-overlay');
+  const sheet=document.getElementById('browse-sheet');
+  if(overlay) overlay.style.display='none';
+  if(sheet){ sheet.style.display='none'; sheet.classList.remove('sheet-open'); }
 }
 
 // ── Auth functions ────────────────────────────────────────────────────────────
@@ -5941,14 +6020,16 @@ function _photosRenderContent(){
     +'<button class="ptp-opt '+((!showAll)?'active':'')+'" onclick="photosToggleSource(false)">Garden only</button>'
     +'<button class="ptp-opt '+(showAll?'active':'')+'" onclick="photosToggleSource(true)">All photos</button>'
     +'</div>';
-  const isCollapsed=window._photosNavCollapsed;
-  const sidebarBtn=`<button class="${isCollapsed?'snav-expand-btn':'snav-expand-btn'} snav-toggle-btn" onclick="toggleSnavCollapse('photos')" title="${isCollapsed?'Show sidebar':'Hide sidebar'}">${_snavIcon(15)}</button>`;
+  const isMob=window.innerWidth<=768;
+  const sidebarBtn=isMob
+    ?`<button class="snav-toggle-btn" onclick="openBrowseSheet('photos')" title="Browse by date" style="gap:5px">📅 <span style="font-size:10px">Browse</span></button>`
+    :`<button class="snav-expand-btn" onclick="toggleSnavCollapse('photos')" title="${window._photosNavCollapsed?'Show sidebar':'Hide sidebar'}">${_snavIcon(15)}</button>`;
   cp.innerHTML='<div class="snav-content-hdr">'+sidebarBtn
     +'<div style="min-width:0;flex:1;display:flex;flex-direction:column;gap:1px;overflow:hidden">'
     +'<span style="font-size:13px;font-weight:600;color:var(--nav-text,var(--nav));white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+title+'</span>'
     +'<span style="font-size:10px;color:var(--text-secondary)">'+totalCount+' photo'+(totalCount!==1?'s':'')+'</span>'
     +'</div>'
-    +toggleHtml
+    +(isMob?'':toggleHtml)
     +'<button onclick="window._photosShowUpload=!window._photosShowUpload;_photosRenderContent()" class="btn-primary-sm" title="Upload photos">📷 <span class="snav-hdr-label">Upload</span></button>'
     +'</div><div class="snav-content-body">'+uploadHtml+histHtml+'</div>';
 }
@@ -6149,7 +6230,10 @@ function _notesRenderContent(byYM){
       <div class="notes-entry-body">${n.content.replace(/</g,'&lt;')}</div>
     </div>`).join("")||`<div style="color:var(--text-secondary);font-size:11px;padding:20px 0">No notes for this period.</div>`;
   const isNotesCollapsed=window._notesNavCollapsed;
-  const notesSidebarBtn=`<button class="snav-expand-btn snav-toggle-btn" onclick="toggleSnavCollapse('notes')" title="${isNotesCollapsed?'Show sidebar':'Hide sidebar'}">${_snavIcon(15)}</button>`;
+  const isMobNotes=window.innerWidth<=768;
+  const notesSidebarBtn=isMobNotes
+    ?`<button class="snav-toggle-btn" onclick="openBrowseSheet('notes')" title="Browse by date" style="gap:5px">📅 <span style="font-size:10px">Browse</span></button>`
+    :`<button class="snav-expand-btn" onclick="toggleSnavCollapse('notes')" title="${isNotesCollapsed?'Show sidebar':'Hide sidebar'}">${_snavIcon(15)}</button>`;
   cp.innerHTML=`
     <div class="snav-content-hdr">
       ${notesSidebarBtn}
