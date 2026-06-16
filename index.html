@@ -1881,6 +1881,9 @@ let userZipcode  = localStorage.getItem('gardenlog_zipcode') || '';
 let _weatherCache = null;            // {lat,lng,zip,dates:{[isoDate]:{hi,lo,code}}}
 let _weatherFetching = false;
 
+// Inject user_id into any row being inserted
+function withUser(row){ return {...row, user_id: activeUserId()}; }
+
 function quickLogWater(dbId, plantCode){
   const today = isoDate(new Date());
   const key = `${plantCode}|${today}`;
@@ -1888,7 +1891,7 @@ function quickLogWater(dbId, plantCode){
   if(existing.watered){ existing.watered=false; } else { existing.watered=true; }
   DAILY_LOGS[key]={...existing};
   const row = withUser({plant_id:dbId, log_date:today, watered:DAILY_LOGS[key].watered});
-  supa.from('plant_daily_logs').upsert(row,{onConflict:'plant_id,log_date'}).then(({error})=>{
+  supa.from('daily_logs').upsert(row,{onConflict:'plant_id,log_date'}).then(({error})=>{
     if(error) console.error('quickLogWater',error);
   });
   renderPlantLogList();
@@ -2012,16 +2015,16 @@ function renderMobileOverview(){
   let h=`<div style="padding:8px">
     <!-- Bulk action bar -->
     <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
-      <button onclick="openBulkWater()" style="flex:1;min-width:60px;background:rgba(91,168,214,.1);border:1px solid rgba(91,168,214,.3);border-radius:8px;padding:9px 6px;font-size:11px;color:#5BA8D6;font-family:'DM Mono',monospace;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px">
+      <button onclick="openBulkWater(isoDate(new Date()))" style="flex:1;min-width:60px;background:rgba(91,168,214,.1);border:1px solid rgba(91,168,214,.3);border-radius:8px;padding:9px 6px;font-size:11px;color:#5BA8D6;font-family:'DM Mono',monospace;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px">
         <span style="font-size:18px">💧</span><span style="font-size:9px">Water All</span>
       </button>
-      <button onclick="openBulkFert()" style="flex:1;min-width:60px;background:rgba(213,181,106,.1);border:1px solid rgba(213,181,106,.3);border-radius:8px;padding:9px 6px;font-size:11px;color:#D5B56A;font-family:'DM Mono',monospace;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px">
+      <button onclick="openBulkFert(isoDate(new Date()))" style="flex:1;min-width:60px;background:rgba(213,181,106,.1);border:1px solid rgba(213,181,106,.3);border-radius:8px;padding:9px 6px;font-size:11px;color:#D5B56A;font-family:'DM Mono',monospace;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px">
         <span style="font-size:18px">🍗</span><span style="font-size:9px">Fertilize</span>
       </button>
-      <button onclick="openBulkHarvest()" style="flex:1;min-width:60px;background:rgba(79,166,106,.1);border:1px solid rgba(79,166,106,.3);border-radius:8px;padding:9px 6px;font-size:11px;color:#4FA66A;font-family:'DM Mono',monospace;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px">
+      <button onclick="openBulkHarvest(isoDate(new Date()))" style="flex:1;min-width:60px;background:rgba(79,166,106,.1);border:1px solid rgba(79,166,106,.3);border-radius:8px;padding:9px 6px;font-size:11px;color:#4FA66A;font-family:'DM Mono',monospace;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px">
         <span style="font-size:18px">🧺</span><span style="font-size:9px">Harvest</span>
       </button>
-      <button onclick="openBulkHealth()" style="flex:1;min-width:60px;background:rgba(217,107,107,.08);border:1px solid rgba(217,107,107,.25);border-radius:8px;padding:9px 6px;font-size:11px;color:var(--danger);font-family:'DM Mono',monospace;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px">
+      <button onclick="openBulkHealth(isoDate(new Date()))" style="flex:1;min-width:60px;background:rgba(217,107,107,.08);border:1px solid rgba(217,107,107,.25);border-radius:8px;padding:9px 6px;font-size:11px;color:var(--danger);font-family:'DM Mono',monospace;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px">
         <span style="font-size:18px">🐞</span><span style="font-size:9px">Health</span>
       </button>
     </div>`;
