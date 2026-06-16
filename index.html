@@ -1157,6 +1157,32 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
           </div>
         </div>
         <div style="padding:2px 14px 7px;font-size:9px;color:var(--text-secondary);line-height:1.4">Hiding icons compresses rows for a denser view</div>
+        <!-- ── Timeline elements (weather / moon) ── -->
+        <div style="height:0.5px;background:var(--border);margin:3px 0"></div>
+        <div style="padding:5px 14px 2px;font-size:9px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;font-weight:600">Timeline elements</div>
+        <div style="padding:4px 14px 8px">
+          <div style="font-size:9px;color:var(--text-secondary);margin-bottom:6px;line-height:1.5">One element at a time — appears in date header.</div>
+          <input id="tl-zipcode-input" type="text" inputmode="numeric" maxlength="5"
+            placeholder="ZIP code for weather"
+            onchange="saveZipcode(this.value)"
+            style="width:100%;padding:5px 9px;font-size:10px;font-family:'DM Mono',monospace;background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text-body);margin-bottom:8px;outline:none"/>
+        </div>
+        <div onclick="setTimelineLayer('temp')" id="tl-layer-temp" class="tl-layer-row" style="padding:7px 14px;font-size:11px;cursor:pointer;color:var(--text-body);display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace"
+          onmouseover="this.style.background='var(--fbg)'" onmouseout="this.style.background=''">
+          🌡️ <span>Hi / Low temps</span>
+          <div id="tl-layer-temp-tog" style="margin-left:auto;width:28px;height:16px;border-radius:8px;background:#C4C0B8;display:flex;align-items:center;padding:2px;justify-content:flex-start;transition:background .15s"><div style="width:12px;height:12px;border-radius:50%;background:#fff"></div></div>
+        </div>
+        <div onclick="setTimelineLayer('weather')" id="tl-layer-weather" class="tl-layer-row" style="padding:7px 14px;font-size:11px;cursor:pointer;color:var(--text-body);display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace"
+          onmouseover="this.style.background='var(--fbg)'" onmouseout="this.style.background=''">
+          ⛅ <span>Weather symbols</span>
+          <div id="tl-layer-weather-tog" style="margin-left:auto;width:28px;height:16px;border-radius:8px;background:#C4C0B8;display:flex;align-items:center;padding:2px;justify-content:flex-start;transition:background .15s"><div style="width:12px;height:12px;border-radius:50%;background:#fff"></div></div>
+        </div>
+        <div onclick="setTimelineLayer('moon')" id="tl-layer-moon" class="tl-layer-row" style="padding:7px 14px;font-size:11px;cursor:pointer;color:var(--text-body);display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace"
+          onmouseover="this.style.background='var(--fbg)'" onmouseout="this.style.background=''">
+          🌙 <span>Moon phases</span>
+          <div id="tl-layer-moon-tog" style="margin-left:auto;width:28px;height:16px;border-radius:8px;background:#C4C0B8;display:flex;align-items:center;padding:2px;justify-content:flex-start;transition:background .15s"><div style="width:12px;height:12px;border-radius:50%;background:#fff"></div></div>
+        </div>
+        <div style="padding:2px 14px 7px;font-size:9px;color:var(--text-secondary);line-height:1.4">Weather requires a valid US ZIP code above</div>
       </div>
     </div>
   </div>
@@ -1165,6 +1191,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 <div id="main">
   <div id="view-gantt">
     <div id="toolbar">
+      <!-- Mobile: Overview/Gantt toggle -->
+      <div id="mob-tl-mode-pill" style="display:none;border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--fbg);flex-shrink:0">
+        <button onclick="setMobileTimelineMode('overview')" id="mob-overview-btn" style="padding:4px 10px;font-size:9px;font-family:'DM Mono',monospace;border:none;background:var(--nav);color:#fff;cursor:pointer;font-weight:700">Overview</button>
+        <button onclick="setMobileTimelineMode('gantt')" id="mob-gantt-btn" style="padding:4px 10px;font-size:9px;font-family:'DM Mono',monospace;border:none;background:transparent;color:var(--text-secondary);cursor:pointer">Gantt</button>
+      </div>
       <!-- Primary: zoom + navigation -->
       <div id="zoom-group">
         <button class="zoom-btn"        onclick="setZoom('day')">day</button>
@@ -1830,10 +1861,10 @@ let showIconFert    = true;
 let showIconHarvest = true;
 let showIconHealth  = true;
 let showDates    = false;
-let filterFlags = {active:true, finished:true, archived:false}; // multi-select filter
-let timelineSearch = ""; // text search across plant name, id, family, subtype
-let selectMode  = false;       // multi-select mode on/off
-let selectedIds = new Set();   // currently selected plant IDs
+let filterFlags = {active:true, finished:true, archived:false};
+let timelineSearch = "";
+let selectMode  = false;
+let selectedIds = new Set();
 let openMenuId  = null;
 let userZone    = "10b";
 let showIdealCycle  = false;
@@ -1841,10 +1872,378 @@ let showProjections = true;
 let weightUnit = 'oz';
 let currentUser = null;
 let currentUserRole = 'user';
-let adminViewingUserId = null; // when admin is viewing another user's data
+let adminViewingUserId = null;
 
-// Inject user_id into any row being inserted
-function withUser(row){ return {...row, user_id: activeUserId()}; }
+// Mobile & timeline layer state
+let mobileTimelineMode = 'overview'; // 'overview' | 'gantt'
+let timelineLayer = null;            // null | 'temp' | 'weather' | 'moon'
+let userZipcode  = localStorage.getItem('gardenlog_zipcode') || '';
+let _weatherCache = null;            // {lat,lng,zip,dates:{[isoDate]:{hi,lo,code}}}
+let _weatherFetching = false;
+
+function quickLogWater(dbId, plantCode){
+  const today = isoDate(new Date());
+  const key = `${plantCode}|${today}`;
+  const existing = DAILY_LOGS[key]||{};
+  if(existing.watered){ existing.watered=false; } else { existing.watered=true; }
+  DAILY_LOGS[key]={...existing};
+  const row = withUser({plant_id:dbId, log_date:today, watered:DAILY_LOGS[key].watered});
+  supa.from('plant_daily_logs').upsert(row,{onConflict:'plant_id,log_date'}).then(({error})=>{
+    if(error) console.error('quickLogWater',error);
+  });
+  renderPlantLogList();
+}
+
+// ── Timeline layer (weather / moon) ──────────────────────────────────────────
+function setTimelineLayer(type){
+  timelineLayer = (timelineLayer===type) ? null : type;
+  _syncLayerToggles();
+  if(timelineLayer && (timelineLayer==='temp'||timelineLayer==='weather')){
+    fetchWeatherData().then(()=>render());
+  } else {
+    render();
+  }
+}
+
+function _syncLayerToggles(){
+  ['temp','weather','moon'].forEach(k=>{
+    const tog=document.getElementById('tl-layer-'+k+'-tog');
+    if(!tog) return;
+    const on=timelineLayer===k;
+    tog.style.background=on?'var(--nav)':'#C4C0B8';
+    tog.style.justifyContent=on?'flex-end':'flex-start';
+  });
+  const zipInp=document.getElementById('tl-zipcode-input');
+  if(zipInp) zipInp.value=userZipcode;
+}
+
+function saveZipcode(zip){
+  userZipcode=(zip||'').trim();
+  localStorage.setItem('gardenlog_zipcode',userZipcode);
+  // Sync the dropdown input if it's open
+  const inp=document.getElementById('tl-zipcode-input');
+  if(inp && inp.value!==userZipcode) inp.value=userZipcode;
+  _weatherCache=null; // invalidate cache on zip change
+}
+
+async function geocodeZipcode(zip){
+  try{
+    const r=await fetch(`https://api.zippopotam.us/us/${zip}`);
+    if(!r.ok) return null;
+    const d=await r.json();
+    return {lat:parseFloat(d.places[0].latitude),lng:parseFloat(d.places[0].longitude)};
+  }catch(e){ return null; }
+}
+
+// WMO weather interpretation codes → emoji
+function wmoToEmoji(code){
+  if(code===0) return '☀️';
+  if(code<=2) return '🌤️';
+  if(code<=3) return '☁️';
+  if(code<=49) return '🌫️';
+  if(code<=59) return '🌦️';
+  if(code<=69) return '🌧️';
+  if(code<=79) return '🌨️';
+  if(code<=84) return '🌧️';
+  if(code<=99) return '⛈️';
+  return '🌡️';
+}
+
+async function fetchWeatherData(){
+  if(!userZipcode) return;
+  if(_weatherFetching) return;
+  // Return cached data if zip matches
+  if(_weatherCache && _weatherCache.zip===userZipcode) return;
+  _weatherFetching=true;
+  try{
+    const geo=await geocodeZipcode(userZipcode);
+    if(!geo){ _weatherFetching=false; return; }
+    const {lat,lng}=geo;
+    const today=new Date();
+    const pastStart=new Date(today); pastStart.setDate(pastStart.getDate()-180);
+    const pastEnd=new Date(today); pastEnd.setDate(pastEnd.getDate()-1);
+    const pastS=isoDate(pastStart), pastE=isoDate(pastEnd), todayS=isoDate(today);
+
+    const [histRes,foreRes]=await Promise.all([
+      fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${pastS}&end_date=${pastE}&daily=temperature_2m_max,temperature_2m_min,weathercode&temperature_unit=fahrenheit&timezone=auto`),
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,weathercode&temperature_unit=fahrenheit&forecast_days=16&timezone=auto`)
+    ]);
+    const [hist,fore]=await Promise.all([histRes.json(),foreRes.json()]);
+    const dates={};
+    const parseDaily=(d)=>{
+      if(!d.daily) return;
+      d.daily.time.forEach((t,i)=>{
+        dates[t]={hi:Math.round(d.daily.temperature_2m_max[i]),lo:Math.round(d.daily.temperature_2m_min[i]),code:d.daily.weathercode[i]};
+      });
+    };
+    parseDaily(hist); parseDaily(fore);
+    _weatherCache={zip:userZipcode,lat,lng,dates};
+  }catch(e){ console.error('fetchWeatherData',e); }
+  _weatherFetching=false;
+}
+
+// ── Mobile Overview (Timeline tab) ─────────────────────────────────────────
+function renderMobileOverview(){
+  const wrap=document.getElementById('gantt-wrap');
+  if(!wrap) return;
+  const today=isoDate(new Date());
+  const phaseColors=['#4FA66A','#7BC043','#D5B56A','#E07B39'];
+  const phaseNames=['Planted','Sprouted','Fruiting','Harvesting'];
+  const phaseBadge=(p)=>{
+    if(p.removed||p.finished) return ['#7E877E','🏁 Finished'];
+    if(p.firstHarvest) return ['#E07B39','🧺 Harvesting'];
+    if(p.firstFruit)   return ['#D5B56A','🌸 Fruiting'];
+    if(p.sprouted)     return ['#7BC043','🌿 Growing'];
+    return ['#4FA66A','🌱 Sprouting'];
+  };
+  const daysDiff=(a,b)=>{
+    if(!a) return 0;
+    return Math.round((new Date(b)-new Date(a+"T00:00:00"))/(1000*60*60*24));
+  };
+  const fmtDate=(d)=>{
+    if(!d) return '—';
+    return new Date(d+"T00:00:00").toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  };
+
+  const active=PLANTS.filter(p=>!p.archived&&filterFlags.active||(p.removed&&filterFlags.finished));
+  const groups={};
+  active.forEach(p=>{ if(!groups[p.family]) groups[p.family]=[]; groups[p.family].push(p); });
+
+  let h=`<div style="padding:8px">
+    <!-- Bulk action bar -->
+    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+      <button onclick="openBulkPanel('water')" style="flex:1;min-width:60px;background:rgba(91,168,214,.1);border:1px solid rgba(91,168,214,.3);border-radius:8px;padding:9px 6px;font-size:11px;color:#5BA8D6;font-family:'DM Mono',monospace;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px">
+        <span style="font-size:18px">💧</span><span style="font-size:9px">Water All</span>
+      </button>
+      <button onclick="openBulkPanel('fertilize')" style="flex:1;min-width:60px;background:rgba(213,181,106,.1);border:1px solid rgba(213,181,106,.3);border-radius:8px;padding:9px 6px;font-size:11px;color:#D5B56A;font-family:'DM Mono',monospace;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px">
+        <span style="font-size:18px">🍗</span><span style="font-size:9px">Fertilize</span>
+      </button>
+      <button onclick="openBulkPanel('harvest')" style="flex:1;min-width:60px;background:rgba(79,166,106,.1);border:1px solid rgba(79,166,106,.3);border-radius:8px;padding:9px 6px;font-size:11px;color:#4FA66A;font-family:'DM Mono',monospace;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px">
+        <span style="font-size:18px">🧺</span><span style="font-size:9px">Harvest</span>
+      </button>
+      <button onclick="openBulkPanel('health')" style="flex:1;min-width:60px;background:rgba(217,107,107,.08);border:1px solid rgba(217,107,107,.25);border-radius:8px;padding:9px 6px;font-size:11px;color:var(--danger);font-family:'DM Mono',monospace;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px">
+        <span style="font-size:18px">🐞</span><span style="font-size:9px">Health</span>
+      </button>
+    </div>`;
+
+  Object.entries(groups).forEach(([family,plants])=>{
+    h+=`<div style="font-size:9px;font-weight:700;color:var(--nav-text,var(--nav));letter-spacing:.07em;text-transform:uppercase;padding:4px 0 6px;display:flex;justify-content:space-between">
+      <span>${family}</span><span style="font-weight:400;color:var(--text-secondary)">${plants.length} plant${plants.length!==1?'s':''}</span>
+    </div>`;
+    plants.forEach(p=>{
+      const [badgeColor,badgeLabel]=phaseBadge(p);
+      const daysActive=p.planted?daysDiff(p.planted,today):0;
+      const harvestCount=p.totalHarvest||0;
+      const avgQual=p.avgQuality?p.avgQuality.toFixed(1):'—';
+
+      // Phase segments — fill up to current phase
+      const phases=[p.planted,p.sprouted,p.firstFruit,p.firstHarvest];
+      const lastPhaseIdx=phases.reduce((acc,d,i)=>d?i:acc,-1);
+      const segs=phaseColors.map((col,i)=>{
+        const filled=i<=lastPhaseIdx;
+        return `<div style="flex:1;height:6px;border-radius:3px;background:${filled?col:'var(--border)'};transition:background .2s"></div>`;
+      }).join('');
+
+      // Dates row
+      const dateItems=[
+        {label:'Planted',date:p.planted},
+        {label:'Sprouted',date:p.sprouted},
+        {label:'Fruit',date:p.firstFruit},
+        {label:'Harvest',date:p.firstHarvest},
+        p.removed?{label:'Finished',date:p.finished||p.removed}:null
+      ].filter(Boolean);
+      const datesRow=dateItems.map(d=>`
+        <div style="display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;flex:1">
+          <span style="font-size:7px;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap">${d.label}</span>
+          <span style="font-size:9px;color:${d.date?'var(--text-body)':'var(--text-secondary)'};font-weight:${d.date?'500':'400'}">${fmtDate(d.date)}</span>
+        </div>`).join('');
+
+      // Current phase callout
+      const phaseIdx=lastPhaseIdx>=0?lastPhaseIdx:0;
+      const phaseStartDate=phases[phaseIdx];
+      const phaseCallout=phaseStartDate
+        ? `<span style="font-size:9px;color:${badgeColor};font-weight:600">${badgeLabel}</span><span style="font-size:9px;color:var(--text-secondary)"> since ${fmtDate(phaseStartDate)}</span>`
+        : `<span style="font-size:9px;color:var(--text-secondary)">No dates recorded</span>`;
+
+      // Last activity icons
+      const logs=Object.keys(DAILY_LOGS).filter(k=>k.startsWith(p.id+'|')).sort();
+      const lastKey=logs[logs.length-1];
+      const lastLog=lastKey?DAILY_LOGS[lastKey]:null;
+      const lastDate=lastKey?lastKey.split('|')[1]:null;
+      const actIcons=lastLog?[
+        lastLog.watered?'💧':'',lastLog.fertilizer?'🍗':'',lastLog.harvest?'🧺':'',lastLog.health?'🐞':''
+      ].filter(Boolean).join(' '):null;
+
+      const cat=CATALOG.find(c=>c.common_name===p.type||c.variety===p.type)||{};
+      const imgHtml=cat.cover_photo_url
+        ?`<img src="${cat.cover_photo_url}" style="width:100%;height:100%;object-fit:cover;display:block"/>`
+        :`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:24px">🌱</div>`;
+
+      h+=`<div onclick="openPlantDetail('${p._dbId}')" style="background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden;cursor:pointer">
+        <!-- Card header -->
+        <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--fbg);border-bottom:1px solid var(--border)">
+          <div style="width:36px;height:36px;border-radius:7px;overflow:hidden;flex-shrink:0;background:var(--bg)">${imgHtml}</div>
+          <span style="background:var(--nav);color:#fff;font-size:8px;font-weight:700;padding:2px 5px;border-radius:3px;flex-shrink:0">${p.id}</span>
+          <span style="font-size:12px;font-weight:600;color:var(--text-body);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.type}</span>
+          <span style="font-size:8px;font-weight:700;padding:2px 8px;border-radius:10px;background:${badgeColor}22;color:${badgeColor};white-space:nowrap;flex-shrink:0">${badgeLabel}</span>
+        </div>
+        <!-- Phase bar -->
+        <div style="display:flex;gap:3px;padding:8px 12px 4px">${segs}</div>
+        <!-- Phase labels -->
+        <div style="display:flex;padding:0 12px 6px;gap:3px">${phaseColors.map((_,i)=>`<div style="flex:1;font-size:7px;color:var(--text-secondary);text-align:center">${phaseNames[i]}</div>`).join('')}</div>
+        <!-- Dates row -->
+        <div style="display:flex;gap:4px;padding:6px 12px;border-top:0.5px solid var(--border)">${datesRow}</div>
+        <!-- Current phase callout -->
+        <div style="padding:5px 12px 6px;font-size:9px;border-top:0.5px solid var(--border)">${phaseCallout}</div>
+        <!-- Stats -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-top:0.5px solid var(--border)">
+          <div style="padding:8px 0;text-align:center;border-right:0.5px solid var(--border)">
+            <div style="font-size:16px;font-weight:700;color:var(--text-body)">${daysActive}</div>
+            <div style="font-size:7px;color:var(--text-secondary)">days active</div>
+          </div>
+          <div style="padding:8px 0;text-align:center;border-right:0.5px solid var(--border)">
+            <div style="font-size:16px;font-weight:700;color:var(--nav-text,var(--nav))">${harvestCount}</div>
+            <div style="font-size:7px;color:var(--text-secondary)">harvests</div>
+          </div>
+          <div style="padding:8px 0;text-align:center">
+            <div style="font-size:16px;font-weight:700;color:var(--gold)">${avgQual==='—'?'—':avgQual+'★'}</div>
+            <div style="font-size:7px;color:var(--text-secondary)">avg quality</div>
+          </div>
+        </div>
+        <!-- Last activity -->
+        ${lastDate?`<div style="padding:6px 12px;font-size:9px;color:var(--text-secondary);background:var(--fbg);border-top:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+          <span>Last activity ${lastDate}</span>
+          <span style="font-size:12px">${actIcons||''}</span>
+        </div>`:''}
+      </div>`;
+    });
+  });
+
+  h+='</div>';
+  wrap.innerHTML=h;
+}
+
+// ── Mobile Plant Log — Quick-Log Cards ────────────────────────────────────────
+function renderPlantLogListMobile(search=''){
+  const list=document.getElementById('plant-log-list');
+  if(!list) return;
+  const term=(search||document.getElementById('plog-search')?.value||'').toLowerCase();
+  const statusF=document.getElementById('plog-status-filter')?.value||'all';
+  const today=isoDate(new Date());
+
+  let plants=PLANTS.filter(p=>{
+    if(statusF==='active'&&(p.archived||p.removed)) return false;
+    if(statusF==='finished'&&(!p.removed||p.archived)) return false;
+    if(statusF==='archived'&&!p.archived) return false;
+    if(term&&!p.type.toLowerCase().includes(term)&&!p.id.toLowerCase().includes(term)&&!p.family.toLowerCase().includes(term)) return false;
+    return true;
+  });
+
+  const groups={};
+  plants.forEach(p=>{ if(!groups[p.family]) groups[p.family]=[]; groups[p.family].push(p); });
+
+  if(!plants.length){
+    list.innerHTML=`<div style="padding:40px;text-align:center;color:var(--text-secondary);font-size:12px">No plants match your filter.</div>`;
+    return;
+  }
+
+  list.innerHTML=Object.entries(groups).map(([family,fps])=>{
+    const rows=fps.map(p=>{
+      const cat=CATALOG.find(c=>c.common_name===p.type||c.variety===p.type)||{};
+      const imgHtml=cat.cover_photo_url
+        ?`<img src="${cat.cover_photo_url}" style="width:100%;height:100%;object-fit:cover;display:block"/>`
+        :`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px">🌱</div>`;
+      const planted=p.planted?new Date(p.planted+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
+      const lastKey=Object.keys(DAILY_LOGS).filter(k=>k.startsWith(p.id+'|')).sort().pop();
+      const lastDate=lastKey?lastKey.split('|')[1]:null;
+      const todayLog=DAILY_LOGS[p.id+'|'+today]||{};
+      const wateredToday=!!todayLog.watered;
+      const fertToday=!!todayLog.fertilizer;
+      const harvestToday=!!todayLog.harvest;
+      const dot=p.archived
+        ?`<span style="font-size:11px">📦</span>`
+        :p.removed
+          ?`<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--border);flex-shrink:0"></span>`
+          :`<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--nav-text,var(--nav));flex-shrink:0"></span>`;
+
+      return `<div style="background:var(--card);border-bottom:1px solid var(--border)">
+        <div onclick="openPlantDetail('${p._dbId}')" style="display:flex;align-items:center;gap:8px;padding:10px 12px 6px;cursor:pointer">
+          <div style="width:40px;height:40px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--bg)">${imgHtml}</div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
+              <span class="plant-id-badge" style="font-size:8px">${p.id}</span>
+              <span style="font-size:11px;font-weight:600;color:var(--text-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.type}</span>
+              ${dot}
+            </div>
+            <div style="font-size:8px;color:var(--text-secondary)">Planted ${planted}${lastDate?' · Last logged '+lastDate:' · No activity'}</div>
+          </div>
+          <div style="text-align:center;flex-shrink:0;min-width:36px">
+            <div style="font-size:15px;font-weight:700;color:var(--nav-text,var(--nav));line-height:1">${p.totalHarvest||0}</div>
+            <div style="font-size:7px;color:var(--text-secondary)">harvested</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;padding:0 12px 10px">
+          <button onclick="quickLogWater('${p._dbId}','${p.id}')" style="flex:1;background:${wateredToday?'rgba(91,168,214,.18)':'var(--fbg)'};border:1px solid ${wateredToday?'rgba(91,168,214,.5)':'var(--border)'};border-radius:6px;padding:6px 4px;font-size:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:'DM Mono',monospace;transition:all .15s">
+            <span>💧</span><span style="font-size:7px;color:${wateredToday?'#5BA8D6':'var(--text-secondary)'}${wateredToday?';font-weight:700':''}">Water${wateredToday?' ✓':''}</span>
+          </button>
+          <button onclick="openPlantDetail('${p._dbId}')" style="flex:1;background:${fertToday?'rgba(213,181,106,.15)':'var(--fbg)'};border:1px solid ${fertToday?'rgba(213,181,106,.4)':'var(--border)'};border-radius:6px;padding:6px 4px;font-size:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:'DM Mono',monospace">
+            <span>🍗</span><span style="font-size:7px;color:${fertToday?'#D5B56A':'var(--text-secondary)'}${fertToday?';font-weight:700':''}">Fert${fertToday?' ✓':''}</span>
+          </button>
+          <button onclick="openPlantDetail('${p._dbId}')" style="flex:1;background:${harvestToday?'rgba(79,166,106,.12)':'var(--fbg)'};border:1px solid ${harvestToday?'rgba(79,166,106,.4)':'var(--border)'};border-radius:6px;padding:6px 4px;font-size:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:'DM Mono',monospace">
+            <span>🧺</span><span style="font-size:7px;color:${harvestToday?'var(--nav-text, var(--nav))':'var(--text-secondary)'}${harvestToday?';font-weight:700':''}">Harvest${harvestToday?' ✓':''}</span>
+          </button>
+          <button onclick="event.stopPropagation();openPlantLogMenu(event,'${p._dbId}','${p.id}')" style="background:var(--fbg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:14px;cursor:pointer;color:var(--text-secondary)">⋯</button>
+        </div>
+      </div>`;
+    }).join('');
+    return `<div style="padding:5px 12px 2px;background:var(--fbg);border-bottom:1px solid var(--border);border-top:1px solid var(--border);font-size:9px;font-weight:700;color:var(--nav-text,var(--nav));letter-spacing:.06em;text-transform:uppercase;display:flex;justify-content:space-between"><span>${family}</span><span style="font-weight:400;color:var(--text-secondary)">${fps.length}</span></div>${rows}`;
+  }).join('');
+}
+
+// ── Mobile Plant Database — Photo List Row ─────────────────────────────────────
+function renderCatalogMobile(search=''){
+  const wrap=document.getElementById('catalog-table-wrap');
+  if(!wrap) return;
+  const term=(search||document.getElementById('catalog-search')?.value||'').toLowerCase();
+  const rows=CATALOG.filter(c=>!term||
+    (c.category||'').toLowerCase().includes(term)||
+    (c.subcategory||'').toLowerCase().includes(term)||
+    (c.variety||c.common_name||'').toLowerCase().includes(term)
+  );
+  const groups={};
+  rows.forEach(c=>{ const fam=c.category||'Other'; if(!groups[fam]) groups[fam]=[]; groups[fam].push(c); });
+
+  let h='<div style="background:var(--bg)">';
+  Object.entries(groups).forEach(([fam,items])=>{
+    h+=`<div style="padding:5px 14px 2px;background:var(--fbg);border-top:1px solid var(--border);border-bottom:1px solid var(--border);font-size:9px;font-weight:700;color:var(--nav-text,var(--nav));letter-spacing:.06em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center">
+      <span>${fam}</span><span style="font-weight:400;color:var(--text-secondary)">${items.length}</span>
+    </div>`;
+    items.forEach(c=>{
+      const variety=c.variety||c.common_name||'';
+      const activePlants=PLANTS.filter(p=>!p.archived&&!p.removed&&(p.type===variety||p.type===c.common_name));
+      const isLocked=!!c.photo_locked;
+      const canEdit=IS_ADMIN||!isLocked;
+      const imgHtml=c.cover_photo_url
+        ?`<img src="${c.cover_photo_url}" style="width:100%;height:100%;object-fit:cover;display:block"/>`
+        :`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--border)">🌱</div>`;
+      const activeBadge=activePlants.length
+        ?`<span style="background:rgba(79,166,106,.12);color:var(--nav-text,var(--nav));font-size:7px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px">${activePlants.length} active</span>`:'';
+      const subText=[c.subcategory,c.variety&&c.subcategory!==c.variety?c.variety:''].filter(Boolean).join(' · ')||c.category||'';
+      h+=`<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:0.5px solid var(--border);background:var(--card)">
+        <div onclick="${canEdit?`triggerImgUpload('${c.id}')`:''}" style="width:44px;height:44px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--bg);cursor:${canEdit?'pointer':'default'}">${imgHtml}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;margin-bottom:2px">
+            <span style="font-size:12px;font-weight:600;color:var(--text-body)">${variety}</span>${activeBadge}
+          </div>
+          <div style="font-size:9px;color:var(--text-secondary)">${subText}</div>
+        </div>
+        <button onclick="openAddPlantModal('${c.id}')" style="background:var(--nav);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:10px;font-family:'DM Mono',monospace;cursor:pointer;flex-shrink:0;white-space:nowrap">+ Add</button>
+      </div>`;
+    });
+  });
+  h+='</div>';
+  wrap.innerHTML=h;
+}
 
 // ── Undo / Redo engine ────────────────────────────────────────────────────────
 let undoStack = [];   // [{description, undo, redo}]
@@ -2709,10 +3108,17 @@ function _snavIcon(size){
   </svg>`;
 }
 
+function setMobileTimelineMode(mode){
+  mobileTimelineMode=mode;
+  const overBtn=document.getElementById('mob-overview-btn');
+  const ganttBtn=document.getElementById('mob-gantt-btn');
+  if(overBtn) overBtn.style.cssText=`padding:4px 10px;font-size:9px;font-family:'DM Mono',monospace;border:none;cursor:pointer;font-weight:${mode==='overview'?'700':'400'};background:${mode==='overview'?'var(--nav)':'transparent'};color:${mode==='overview'?'#fff':'var(--text-secondary)'}`;
+  if(ganttBtn) ganttBtn.style.cssText=`padding:4px 10px;font-size:9px;font-family:'DM Mono',monospace;border:none;cursor:pointer;font-weight:${mode==='gantt'?'700':'400'};background:${mode==='gantt'?'var(--nav)':'transparent'};color:${mode==='gantt'?'#fff':'var(--text-secondary)'}`;
+  render();
+}
+
 function toggleSnavCollapse(type){
   if(type==='photos'){
-    window._photosNavCollapsed=!window._photosNavCollapsed;
-    const sb=document.getElementById('photos-nav-sidebar');
     if(sb) sb.classList.toggle('snav-collapsed',window._photosNavCollapsed);
   } else {
     window._notesNavCollapsed=!window._notesNavCollapsed;
@@ -3029,6 +3435,20 @@ async function initData(){
 
 // ── Main render ───────────────────────────────────────────────────────────────
 function render(){
+  // Mobile: show Overview or Gantt based on mode toggle
+  const isMob=window.innerWidth<=768;
+  const pill=document.getElementById('mob-tl-mode-pill');
+  const zoomGroup=document.getElementById('zoom-group');
+  const navGroup=document.getElementById('nav-group');
+  if(pill) pill.style.display=isMob?'flex':'none';
+  if(isMob && mobileTimelineMode==='overview'){
+    if(zoomGroup) zoomGroup.style.display='none';
+    if(navGroup) navGroup.style.display='none';
+    renderMobileOverview(); return;
+  }
+  if(zoomGroup) zoomGroup.style.display='';
+  if(navGroup) navGroup.style.display='';
+
   const isSeason = zoom==="season";
   const{cols:colCount,colW:baseColW,thin}=ZOOM_CFG[zoom];
   const colW=Math.round(baseColW*(scalePercent/100));
@@ -3037,6 +3457,10 @@ function render(){
   // year: snap to Jan 1; month: snap to 1st of month
   let effStart=new Date(startDate);effStart.setHours(0,0,0,0);
   LEFT_W=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--lw'))||230;
+  // Expand date header height when a timeline layer is showing
+  const hhBase=window.innerWidth<=768?60:80;
+  const hhActive=timelineLayer?hhBase+20:hhBase;
+  document.documentElement.style.setProperty('--hh',hhActive+'px');
   if(zoom==="month") effStart=new Date(effStart.getFullYear(),effStart.getMonth(),1);
   if(zoom==="year")  effStart=new Date(effStart.getFullYear(),0,1);
 
@@ -3150,12 +3574,25 @@ function render(){
     if(sub&&(zoom==="day"||zoom==="week")){
       const s=document.createElement("div");s.className="dhc-sub";s.textContent=sub;dc.appendChild(s);
     }
-    // Moon phase — day zoom only, centered in empty space above the date, skip year-change col
-    if(zoom==="day" && !showYear){
-      const moon=document.createElement("div");
-      moon.style.cssText="position:absolute;top:0;bottom:30px;left:0;right:0;display:flex;align-items:center;justify-content:center;font-size:11px;pointer-events:none;user-select:none";
-      moon.textContent=moonPhaseEmoji(col);
-      dc.appendChild(moon);
+    // Timeline layer element — appears as small badge inside each date column
+    if(timelineLayer){
+      const dateKey=isoDate(col);
+      const wd=_weatherCache?_weatherCache.dates[dateKey]:null;
+      let layerEl=null;
+      if(timelineLayer==='moon'){
+        layerEl=document.createElement('div');
+        layerEl.style.cssText='font-size:11px;position:absolute;top:3px;left:0;right:0;text-align:center;pointer-events:none;line-height:1';
+        layerEl.textContent=moonPhaseEmoji(col);
+      } else if(timelineLayer==='temp'&&wd){
+        layerEl=document.createElement('div');
+        layerEl.style.cssText='position:absolute;top:2px;left:0;right:0;display:flex;flex-direction:column;align-items:center;pointer-events:none;gap:0;line-height:1.2';
+        layerEl.innerHTML=`<span style="font-size:8px;font-weight:700;color:var(--danger)">${wd.hi}°</span><span style="font-size:8px;color:#5BA8D6">${wd.lo}°</span>`;
+      } else if(timelineLayer==='weather'&&wd){
+        layerEl=document.createElement('div');
+        layerEl.style.cssText='font-size:12px;position:absolute;top:3px;left:0;right:0;text-align:center;pointer-events:none;line-height:1';
+        layerEl.textContent=wmoToEmoji(wd.code);
+      }
+      if(layerEl) dc.appendChild(layerEl);
     }
 
     // Hover popup — day zoom only
@@ -3431,6 +3868,7 @@ function toggleSettingsDD(e){
   m.style.top=(r.bottom+4)+'px';
   m.style.right=(window.innerWidth-r.right)+'px';
   m.style.left='auto';
+  _syncLayerToggles(); // sync weather/moon toggle states and zip input
 }
 
 function closeSettingsDD(){
@@ -4402,18 +4840,32 @@ function renderSettingsTab(){
         </div>
       </div>
     </div>
+    <div class="pd-section" style="background:var(--card);border-radius:12px;border:1px solid var(--border);margin-bottom:16px">
+      <div class="pd-section-hdr">Weather & Location</div>
+      <div class="pd-section-body">
+        <div class="settings-row">
+          <label class="settings-label">ZIP Code</label>
+          <input class="settings-input" id="st-zipcode" type="text" inputmode="numeric" maxlength="5" placeholder="e.g. 92688"/>
+          <div class="settings-help">Used for hi/low temperature and weather symbol overlays on the timeline. US ZIP codes only.</div>
+        </div>
+      </div>
+    </div>
     <button class="log-save-btn" onclick="saveSettingsFromTab()">Save Settings</button>
   `;
   // Populate current values
   document.getElementById('st-zone-select').value=userZone;
   document.getElementById('st-weight-unit').value=weightUnit;
   document.getElementById('st-projections-toggle').checked=showProjections;
+  document.getElementById('st-zipcode').value=userZipcode;
 }
 
 function saveSettingsFromTab(){
   userZone=document.getElementById('st-zone-select').value;
   weightUnit=document.getElementById('st-weight-unit').value;
   showProjections=document.getElementById('st-projections-toggle').checked;
+  const newZip=(document.getElementById('st-zipcode').value||'').trim();
+  if(newZip!==userZipcode){ userZipcode=newZip; _weatherCache=null; }
+  saveZipcode(userZipcode);
   localStorage.setItem("gardenlog_weightUnit",weightUnit);
   localStorage.setItem("gardenlog_showProjections",showProjections?"1":"0");
   // Keep old modal in sync
@@ -4442,6 +4894,7 @@ async function loadCatalog(){
 }
 
 function renderCatalog(search=""){
+  if(window.innerWidth<=768){ renderCatalogMobile(search); return; }
   const tbody=document.getElementById("catalog-tbody");
   if(!tbody) return;
   const term=(search||"").toLowerCase();
@@ -4740,6 +5193,7 @@ function loadLogView(){
 }
 
 function renderPlantLogList(search=""){
+  if(window.innerWidth<=768){ renderPlantLogListMobile(search); return; }
   const list = document.getElementById("plant-log-list");
   if(!list) return;
   const term = (search || document.getElementById("plog-search")?.value || "").toLowerCase();
