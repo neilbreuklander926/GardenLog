@@ -2079,7 +2079,7 @@ function renderMobileOverview(){
         ?`<img src="${cat.cover_photo_url}" style="width:100%;height:100%;object-fit:cover;display:block"/>`
         :`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:24px">🌱</div>`;
 
-      h+=`<div onclick="openPlantDetail('${p._dbId}')" style="background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden;cursor:pointer">
+      h+=`<div onclick="openPlantFromOverview('${p._dbId}')" style="background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden;cursor:pointer">
         <!-- Card header -->
         <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--fbg);border-bottom:1px solid var(--border)">
           <div style="width:36px;height:36px;border-radius:7px;overflow:hidden;flex-shrink:0;background:var(--bg)">${imgHtml}</div>
@@ -5257,6 +5257,11 @@ function renderPlantLogList(search=""){
 }
 
 // ── Plant Detail page ─────────────────────────────────────────────────────────
+function openPlantFromOverview(dbId){
+  switchTab('log');
+  openPlantDetail(dbId);
+}
+
 async function openPlantDetail(dbId){
   currentDetailPlantId = dbId;
   currentDetailTab = "overview";
