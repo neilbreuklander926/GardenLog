@@ -6310,6 +6310,8 @@ function plogPreview(zoneId, previewId, inp){
   const prev=document.getElementById(previewId); if(!prev) return;
   const lbl=document.getElementById(zoneId+'-label');
   const files=[...inp.files];
+  // Cache files immediately — iOS Safari can clear inp.files after returning from the OS picker
+  if(zoneId==='gp-zone') window._gpSelectedFiles=[...inp.files];
   if(!files.length){ prev.style.display='none'; if(lbl) lbl.style.display=''; return; }
   if(lbl) lbl.style.display='none';
   prev.style.display='flex';
@@ -6376,6 +6378,7 @@ window._photosSelYear=null;
 window._photosSelMonth=null;
 window._photosExpandedYears=new Set();
 window._photosShowUpload=false;
+window._gpSelectedFiles=[];
 window._photosShowAll=true;
 
 function _photosGroupByYM(photos){
@@ -6548,17 +6551,49 @@ async function deletePlantPhotoFromMain(photoId,photoUrl){
 async function saveGardenPhotos(){
   const date=document.getElementById('gp-date')?.value||isoDate(TODAY);
   const notes=document.getElementById('gp-notes')?.value.trim()||null;
-  const files=[...document.getElementById('gp-files')?.files||[]];
-  if(!files.length){ alert('Please select at least one photo.'); return; }
-  for(const file of files){
-    const ext=file.name.split('.').pop();
-    const path=`garden/${date}-${Date.now()}.${ext}`;
-    const {error:upErr}=await supa.storage.from('garden-photos').upload(path,file,{upsert:false});
-    if(upErr){ console.error(upErr); continue; }
-    const {data:urlData}=supa.storage.from('garden-photos').getPublicUrl(path);
-    await supa.from('garden_photos').insert(withUser({photo_date:date,photo_url:urlData.publicUrl,notes}));
+
+  // Use cached files as primary source — iOS Safari sometimes clears inp.files
+  // after returning from the OS photo picker
+  const inp=document.getElementById('gp-files');
+  const inpFiles=inp?.files?.length ? [...inp.files] : [];
+  const files=inpFiles.length ? inpFiles : (window._gpSelectedFiles||[]);
+
+  if(!files.length){
+    // Make sure the user sees feedback even if alert() is suppressed
+    const zone=document.getElementById('gp-zone');
+    if(zone){ zone.style.border='2px solid var(--danger)'; setTimeout(()=>zone.style.border='',2000); }
+    alert('Please select at least one photo first.');
+    return;
   }
-  // Navigate to the uploaded month and close form
+
+  // Show loading state
+  const saveBtn=document.querySelector('.log-save-btn[onclick="saveGardenPhotos()"]');
+  if(saveBtn){ saveBtn.textContent=`Uploading ${files.length} photo${files.length>1?'s':''}…`; saveBtn.disabled=true; }
+
+  let saved=0, failed=0;
+  for(const file of files){
+    const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
+    const path=`garden/${date}-${Date.now()}-${Math.random().toString(36).slice(2,6)}.${ext}`;
+    const{error:upErr}=await supa.storage.from('garden-photos').upload(path,file,{upsert:false});
+    if(upErr){ console.error('Photo upload error:',upErr); failed++; continue; }
+    const{data:urlData}=supa.storage.from('garden-photos').getPublicUrl(path);
+    const{error:insErr}=await supa.from('garden_photos').insert(withUser({photo_date:date,photo_url:urlData.publicUrl,notes}));
+    if(insErr){ console.error('Photo insert error:',insErr); failed++; }
+    else saved++;
+    // Update button to show progress
+    if(saveBtn && files.length>1) saveBtn.textContent=`Uploaded ${saved} of ${files.length}…`;
+  }
+
+  window._gpSelectedFiles=[];
+
+  if(saved===0){
+    if(saveBtn){ saveBtn.textContent='Save Photos'; saveBtn.disabled=false; }
+    alert(failed>0 ? 'Upload failed — check your connection and try again.' : 'No photos were saved.');
+    return;
+  }
+
+  if(failed>0) alert(`${saved} photo${saved>1?'s':''} saved. ${failed} failed — try re-uploading those.`);
+
   const d=new Date(date+'T00:00:00');
   window._photosSelYear=d.getFullYear();
   window._photosSelMonth=d.getMonth();
