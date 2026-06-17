@@ -636,18 +636,6 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .log-plant-hdr{display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;user-select:none;transition:background .1s}
   .log-plant-hdr:hover{background:var(--fbg)}
   .log-plant-hdr.has-log{border-left:3px solid var(--nav)}
-  /* Quick-log action row beneath each plant in desktop plant log */
-  .plog-quick-row{display:flex;gap:6px;padding:6px 16px 10px 16px}
-  .plog-qbtn{border-radius:6px;padding:4px 11px;font-size:10px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-family:'DM Mono',monospace;border:1px solid var(--border);background:var(--fbg);color:var(--text-body);transition:background .12s,border-color .12s;white-space:nowrap}
-  .plog-qbtn:hover{background:var(--border)}
-  .plog-qbtn.ql-water-on{background:rgba(46,134,193,.1);border-color:rgba(46,134,193,.45);color:#2E86C1}
-  .plog-qbtn.ql-fert-on{background:rgba(197,162,83,.12);border-color:rgba(197,162,83,.45);color:#B8922A}
-  .plog-qbtn.ql-harvest-on{background:rgba(30,91,53,.1);border-color:rgba(30,91,53,.4);color:#1E5B35}
-  .plog-qbtn.ql-health-on{background:rgba(201,75,75,.08);border-color:rgba(201,75,75,.4);color:var(--danger)}
-  body.dark .plog-qbtn.ql-water-on{color:#5BA8D6;border-color:rgba(91,168,214,.45);background:rgba(91,168,214,.1)}
-  body.dark .plog-qbtn.ql-fert-on{color:#D5B56A;border-color:rgba(213,181,106,.45);background:rgba(213,181,106,.1)}
-  body.dark .plog-qbtn.ql-harvest-on{color:#4FA66A;border-color:rgba(79,166,106,.45);background:rgba(79,166,106,.1)}
-  body.dark #quick-log-panel{box-shadow:0 8px 28px rgba(0,0,0,.55)}
   .log-expand-arrow{font-size:9px;color:var(--text-secondary);margin-left:auto;transition:transform .15s}
   .log-expand-arrow.open{transform:rotate(90deg)}
   .log-form{display:none;padding:16px 20px 20px 52px;background:var(--fbg);border-top:1px solid var(--border)}
@@ -1572,17 +1560,6 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   <div id="browse-sheet-content"></div>
 </div>
 
-<!-- Quick-log floating panel (fert / harvest / health) -->
-<div id="quick-log-panel" style="display:none;position:fixed;z-index:6000;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;min-width:230px;max-width:290px;box-shadow:0 8px 28px rgba(0,0,0,.18)">
-  <div id="qlp-title" style="font-size:11px;font-weight:700;color:var(--text-body);margin-bottom:10px;font-family:'DM Mono',monospace;letter-spacing:.02em"></div>
-  <div id="qlp-body"></div>
-  <div style="display:flex;gap:6px;margin-top:12px;align-items:center">
-    <button id="qlp-save" onclick="saveQuickLog()" class="log-save-btn" style="flex:1;font-size:10px;padding:6px">Save</button>
-    <button id="qlp-delete" onclick="deleteQuickLog()" class="inline-del-btn" style="font-size:10px;padding:6px 10px;display:none">Delete</button>
-    <button onclick="closeQuickLog()" style="background:var(--fbg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;color:var(--text-secondary);line-height:1">✕</button>
-  </div>
-</div>
-
 <!-- Timeline tooltip -->
 <div id="tl-tooltip"></div>
 <!-- Health Event Edit Panel -->
@@ -1904,9 +1881,6 @@ let userZipcode  = localStorage.getItem('gardenlog_zipcode') || '';
 let _weatherCache = null;            // {lat,lng,zip,dates:{[isoDate]:{hi,lo,code}}}
 let _weatherFetching = false;
 
-// Inject user_id into any row being inserted
-function withUser(row){ return {...row, user_id: activeUserId()}; }
-
 function quickLogWater(dbId, plantCode){
   const today = isoDate(new Date());
   const key = `${plantCode}|${today}`;
@@ -1914,7 +1888,7 @@ function quickLogWater(dbId, plantCode){
   if(existing.watered){ existing.watered=false; } else { existing.watered=true; }
   DAILY_LOGS[key]={...existing};
   const row = withUser({plant_id:dbId, log_date:today, watered:DAILY_LOGS[key].watered});
-  supa.from('daily_logs').upsert(row,{onConflict:'plant_id,log_date'}).then(({error})=>{
+  supa.from('plant_daily_logs').upsert(row,{onConflict:'plant_id,log_date'}).then(({error})=>{
     if(error) console.error('quickLogWater',error);
   });
   renderPlantLogList();
@@ -2038,16 +2012,16 @@ function renderMobileOverview(){
   let h=`<div style="padding:8px">
     <!-- Bulk action bar -->
     <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
-      <button onclick="openBulkWater(isoDate(new Date()))" style="flex:1;min-width:60px;background:rgba(91,168,214,.1);border:1px solid rgba(91,168,214,.3);border-radius:8px;padding:9px 6px;font-size:11px;color:#5BA8D6;font-family:'DM Mono',monospace;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px">
+      <button onclick="openBulkWater()" style="flex:1;min-width:60px;background:rgba(91,168,214,.1);border:1px solid rgba(91,168,214,.3);border-radius:8px;padding:9px 6px;font-size:11px;color:#5BA8D6;font-family:'DM Mono',monospace;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px">
         <span style="font-size:18px">💧</span><span style="font-size:9px">Water All</span>
       </button>
-      <button onclick="openBulkFert(isoDate(new Date()))" style="flex:1;min-width:60px;background:rgba(213,181,106,.1);border:1px solid rgba(213,181,106,.3);border-radius:8px;padding:9px 6px;font-size:11px;color:#D5B56A;font-family:'DM Mono',monospace;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px">
+      <button onclick="openBulkFert()" style="flex:1;min-width:60px;background:rgba(213,181,106,.1);border:1px solid rgba(213,181,106,.3);border-radius:8px;padding:9px 6px;font-size:11px;color:#D5B56A;font-family:'DM Mono',monospace;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px">
         <span style="font-size:18px">🍗</span><span style="font-size:9px">Fertilize</span>
       </button>
-      <button onclick="openBulkHarvest(isoDate(new Date()))" style="flex:1;min-width:60px;background:rgba(79,166,106,.1);border:1px solid rgba(79,166,106,.3);border-radius:8px;padding:9px 6px;font-size:11px;color:#4FA66A;font-family:'DM Mono',monospace;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px">
+      <button onclick="openBulkHarvest()" style="flex:1;min-width:60px;background:rgba(79,166,106,.1);border:1px solid rgba(79,166,106,.3);border-radius:8px;padding:9px 6px;font-size:11px;color:#4FA66A;font-family:'DM Mono',monospace;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px">
         <span style="font-size:18px">🧺</span><span style="font-size:9px">Harvest</span>
       </button>
-      <button onclick="openBulkHealth(isoDate(new Date()))" style="flex:1;min-width:60px;background:rgba(217,107,107,.08);border:1px solid rgba(217,107,107,.25);border-radius:8px;padding:9px 6px;font-size:11px;color:var(--danger);font-family:'DM Mono',monospace;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px">
+      <button onclick="openBulkHealth()" style="flex:1;min-width:60px;background:rgba(217,107,107,.08);border:1px solid rgba(217,107,107,.25);border-radius:8px;padding:9px 6px;font-size:11px;color:var(--danger);font-family:'DM Mono',monospace;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px">
         <span style="font-size:18px">🐞</span><span style="font-size:9px">Health</span>
       </button>
     </div>`;
@@ -3287,6 +3261,11 @@ async function getProfile(userId){
 function activeUserId(){
   // Admin viewing another user returns that user's ID, otherwise current user
   return adminViewingUserId || currentUser?.id;
+}
+
+// Add user_id + garden_id to every Supabase insert row
+function withUser(row){
+  return {...row, user_id: activeUserId(), garden_id: DEFAULT_GARDEN_ID};
 }
 
 async function initData(){
@@ -5261,13 +5240,7 @@ function renderPlantLogList(search=""){
           :`<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#2E7D4F;flex-shrink:0" title="Active"></span>`;
       const lastLog = Object.keys(DAILY_LOGS).filter(k=>k.startsWith(p.id+"|")).sort().pop();
       const lastDate = lastLog ? lastLog.split("|")[1] : null;
-      const today = isoDate(new Date());
-      const todayLog = DAILY_LOGS[`${p.id}|${today}`] || {};
-      const wOn  = todayLog.watered   ? 'ql-water-on'   : '';
-      const fOn  = todayLog.fertilizer? 'ql-fert-on'    : '';
-      const hOn  = (todayLog.harvest||0)>0 ? 'ql-harvest-on' : '';
-      const heOn = todayLog.health    ? 'ql-health-on'  : '';
-      return `<div class="plog-row log-plant-row" onclick="openPlantDetail('${p._dbId}')">
+      return `<div class="plog-row" onclick="openPlantDetail('${p._dbId}')">
         ${imgHtml}
         <div class="plog-info">
           <div style="display:flex;align-items:center;gap:6px">
@@ -5282,224 +5255,13 @@ function renderPlantLogList(search=""){
           <div class="plog-harvest-lbl">harvested</div>
         </div>
         <button class="plog-menu-btn" onclick="event.stopPropagation();openPlantLogMenu(event,'${p._dbId}','${p.id}')" title="Actions">⋮</button>
-      </div>
-      <div class="plog-quick-row">
-        <button class="plog-qbtn ${wOn}" onclick="event.stopPropagation();quickLogWater('${p._dbId}','${p.id}');renderPlantLogList()" title="${todayLog.watered?'Watered today — click to undo':'Log watering for today'}">💧 ${todayLog.watered?'Watered ✓':'Water'}</button>
-        <button class="plog-qbtn ${fOn}" onclick="event.stopPropagation();showQuickLog('${p._dbId}','${p.id}','fert',this)" title="${todayLog.fertilizer?'Fertilized today — click to edit':'Log fertilizing for today'}">🍗 ${todayLog.fertilizer?'Fert ✓':'Fert'}</button>
-        <button class="plog-qbtn ${hOn}" onclick="event.stopPropagation();showQuickLog('${p._dbId}','${p.id}','harvest',this)" title="${(todayLog.harvest||0)>0?'Harvest logged today — click to edit':'Log harvest for today'}">🧺 ${(todayLog.harvest||0)>0?'Harvest ✓':'Harvest'}</button>
-        <button class="plog-qbtn ${heOn}" onclick="event.stopPropagation();showQuickLog('${p._dbId}','${p.id}','health',this)" title="${todayLog.health?'Health event logged today — click to edit':'Log health event for today'}">🐞 ${todayLog.health?'Health ✓':'Health'}</button>
       </div>`;
     }).join("");
     return `<div class="plog-family-hdr">${family} <span style="font-family:'DM Mono';font-size:10px;color:#888;font-weight:400">(${fps.length})</span></div>${rows}`;
   }).join("");
 }
 
-// ── Quick-log floating panel ─────────────────────────────────────────────────
-let _qlpState = null;
-
-function showQuickLog(dbId, plantId, type, btn){
-  closeQuickLog();
-  const today = isoDate(new Date());
-  const key = `${plantId}|${today}`;
-  const log = DAILY_LOGS[key] || {};
-  const icons = {fert:'🍗',harvest:'🧺',health:'🐞'};
-  const labels = {fert:'Fertilize',harvest:'Harvest',health:'Health Event'};
-  _qlpState = {dbId, plantId, type, today, key, log, quality: log.quality||0};
-
-  const panel = document.getElementById('quick-log-panel');
-  const titleEl = document.getElementById('qlp-title');
-  const body = document.getElementById('qlp-body');
-  const delBtn = document.getElementById('qlp-delete');
-  titleEl.textContent = `${icons[type]} Log ${labels[type]} — Today`;
-
-  if(type === 'fert'){
-    const hasLog = !!log.fertilizer;
-    delBtn.style.display = hasLog ? 'inline-flex' : 'none';
-    body.innerHTML = `
-      <div style="margin-bottom:8px">
-        <div class="log-field-lbl" style="margin-bottom:4px">Fertilizer type</div>
-        <input id="qlp-fert-type" class="log-inp" placeholder="e.g. Organic 4-4-4" value="${(log.fertilizer||'').replace(/"/g,'&quot;')}"/>
-      </div>
-      <div>
-        <div class="log-field-lbl" style="margin-bottom:4px">Notes</div>
-        <textarea id="qlp-fert-notes" class="log-inp" rows="2" style="resize:none" placeholder="Optional…">${log.fertNotes||''}</textarea>
-      </div>`;
-  } else if(type === 'harvest'){
-    const hasLog = (log.harvest||0) > 0;
-    delBtn.style.display = hasLog ? 'inline-flex' : 'none';
-    const q = log.quality||0;
-    body.innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-        <div>
-          <div class="log-field-lbl" style="margin-bottom:4px">Count</div>
-          <input id="qlp-harvest-count" class="log-inp" type="number" min="0" placeholder="0" value="${log.harvest||''}"/>
-        </div>
-        <div>
-          <div class="log-field-lbl" style="margin-bottom:4px">Weight (${weightUnit})</div>
-          <input id="qlp-harvest-weight" class="log-inp" type="number" min="0" step="0.1" placeholder="0.0" value="${log.weight||''}"/>
-        </div>
-      </div>
-      <div>
-        <div class="log-field-lbl" style="margin-bottom:6px">Quality</div>
-        <div style="display:flex;gap:5px">
-          ${[1,2,3,4,5].map(n=>`<button onclick="event.stopPropagation();qlpSetQuality(${n})" id="qlp-q-${n}" style="width:28px;height:28px;border-radius:5px;border:1px solid var(--border);background:${q>=n?'var(--nav)':'var(--fbg)'};color:${q>=n?'#fff':'var(--text-secondary)'};font-size:13px;cursor:pointer;transition:all .1s">★</button>`).join('')}
-        </div>
-      </div>`;
-  } else if(type === 'health'){
-    const hasLog = !!log.health;
-    delBtn.style.display = hasLog ? 'inline-flex' : 'none';
-    body.innerHTML = `
-      <div style="margin-bottom:8px">
-        <div class="log-field-lbl" style="margin-bottom:4px">Issue type</div>
-        <select id="qlp-health-type" class="log-inp">
-          <option value="">— select —</option>
-          <option value="pest" ${log.healthType==='pest'?'selected':''}>🐛 Pest</option>
-          <option value="disease" ${log.healthType==='disease'?'selected':''}>🍂 Disease</option>
-          <option value="other" ${log.healthType==='other'?'selected':''}>⚠️ Other</option>
-        </select>
-      </div>
-      <div style="margin-bottom:8px">
-        <div class="log-field-lbl" style="margin-bottom:4px">Severity</div>
-        <select id="qlp-health-severity" class="log-inp">
-          <option value="">— select —</option>
-          <option value="low" ${log.healthSeverity==='low'?'selected':''}>Low</option>
-          <option value="medium" ${log.healthSeverity==='medium'?'selected':''}>Medium</option>
-          <option value="high" ${log.healthSeverity==='high'?'selected':''}>High</option>
-        </select>
-      </div>
-      <div>
-        <div class="log-field-lbl" style="margin-bottom:4px">Notes</div>
-        <textarea id="qlp-health-notes" class="log-inp" rows="2" style="resize:none" placeholder="Describe the issue…">${log.healthNotes||''}</textarea>
-      </div>`;
-  }
-
-  // Position near the button
-  panel.style.display = 'block';
-  const r = btn.getBoundingClientRect();
-  const panelH = 320, panelW = 290;
-  let top = r.bottom + 6;
-  let left = r.left;
-  if(top + panelH > window.innerHeight - 10) top = r.top - panelH - 6;
-  if(left + panelW > window.innerWidth - 10) left = window.innerWidth - panelW - 10;
-  if(left < 6) left = 6;
-  panel.style.top = top + 'px';
-  panel.style.left = left + 'px';
-
-  // Close on outside click (deferred so this click doesn't immediately close it)
-  setTimeout(()=>document.addEventListener('click', _qlpOutsideClick, {capture:true}), 50);
-}
-
-function _qlpOutsideClick(e){
-  const panel = document.getElementById('quick-log-panel');
-  if(panel && panel.contains(e.target)) return;
-  closeQuickLog();
-}
-
-function closeQuickLog(){
-  const panel = document.getElementById('quick-log-panel');
-  if(panel) panel.style.display = 'none';
-  document.removeEventListener('click', _qlpOutsideClick, {capture:true});
-  _qlpState = null;
-}
-
-function qlpSetQuality(n){
-  if(!_qlpState) return;
-  _qlpState.quality = n;
-  [1,2,3,4,5].forEach(i=>{
-    const b = document.getElementById('qlp-q-'+i);
-    if(!b) return;
-    const on = i <= n;
-    b.style.background = on ? 'var(--nav)' : 'var(--fbg)';
-    b.style.color = on ? '#fff' : 'var(--text-secondary)';
-  });
-}
-
-async function saveQuickLog(){
-  if(!_qlpState) return;
-  const {dbId, plantId, type, today, key} = _qlpState;
-  const plant = PLANTS.find(p=>p._dbId===dbId);
-  if(!plant) return;
-  const saveBtn = document.getElementById('qlp-save');
-  if(saveBtn){ saveBtn.textContent='Saving…'; saveBtn.disabled=true; }
-
-  if(type === 'fert'){
-    const fertType = document.getElementById('qlp-fert-type')?.value.trim()||'';
-    const fertNotes = document.getElementById('qlp-fert-notes')?.value.trim()||'';
-    if(!fertType){ alert('Please enter a fertilizer type.'); if(saveBtn){saveBtn.textContent='Save';saveBtn.disabled=false;} return; }
-    const {error} = await supa.from('daily_logs').upsert(
-      withUser({plant_id:dbId, log_date:today, fertilized:true, fertilizer_type:fertType, fertilizer_notes:fertNotes||null}),
-      {onConflict:'plant_id,log_date'});
-    if(error){ console.error(error); alert('Save failed.'); if(saveBtn){saveBtn.textContent='Save';saveBtn.disabled=false;} return; }
-    if(!DAILY_LOGS[key]) DAILY_LOGS[key]={};
-    DAILY_LOGS[key].fertilizer = fertType;
-    DAILY_LOGS[key].fertNotes = fertNotes;
-
-  } else if(type === 'harvest'){
-    const qty = parseFloat(document.getElementById('qlp-harvest-count')?.value)||0;
-    const wt = parseFloat(document.getElementById('qlp-harvest-weight')?.value)||null;
-    const quality = _qlpState.quality || null;
-    if(!qty){ alert('Please enter a harvest count.'); if(saveBtn){saveBtn.textContent='Save';saveBtn.disabled=false;} return; }
-    const {error} = await supa.from('harvest_logs').insert(
-      withUser({plant_id:dbId, harvest_date:today, quantity:qty, weight_value:wt, weight_unit:weightUnit, quality_rating:quality}));
-    if(error){ console.error(error); alert('Save failed.'); if(saveBtn){saveBtn.textContent='Save';saveBtn.disabled=false;} return; }
-    if(!DAILY_LOGS[key]) DAILY_LOGS[key]={};
-    DAILY_LOGS[key].harvest = (DAILY_LOGS[key].harvest||0) + qty;
-    DAILY_LOGS[key].weight = wt;
-    DAILY_LOGS[key].quality = quality;
-    plant.totalHarvest = (plant.totalHarvest||0) + qty;
-
-  } else if(type === 'health'){
-    const hType = document.getElementById('qlp-health-type')?.value||null;
-    const severity = document.getElementById('qlp-health-severity')?.value||null;
-    const notes = document.getElementById('qlp-health-notes')?.value.trim()||null;
-    const {error} = await supa.from('health_events').insert(
-      withUser({plant_id:dbId, identified_date:today, issue_type:hType, severity, notes}));
-    if(error){ console.error(error); alert('Save failed.'); if(saveBtn){saveBtn.textContent='Save';saveBtn.disabled=false;} return; }
-    if(!DAILY_LOGS[key]) DAILY_LOGS[key]={};
-    DAILY_LOGS[key].health = true;
-    DAILY_LOGS[key].healthType = hType;
-    DAILY_LOGS[key].healthSeverity = severity;
-    DAILY_LOGS[key].healthNotes = notes;
-  }
-
-  closeQuickLog();
-  renderPlantLogList();
-  if(currentDetailPlantId === dbId){
-    const cat = CATALOG.find(c=>c.common_name===plant?.type||c.variety===plant?.type)||{};
-    renderPlantDetailTab('overview', plant, cat);
-  }
-}
-
-async function deleteQuickLog(){
-  if(!_qlpState) return;
-  const {dbId, plantId, type, today, key} = _qlpState;
-  const plant = PLANTS.find(p=>p._dbId===dbId);
-
-  if(type === 'fert'){
-    await supa.from('daily_logs')
-      .update({fertilized:false, fertilizer_type:null, fertilizer_notes:null})
-      .eq('plant_id', dbId).eq('log_date', today);
-    if(DAILY_LOGS[key]){ DAILY_LOGS[key].fertilizer=null; DAILY_LOGS[key].fertNotes=null; }
-
-  } else if(type === 'harvest'){
-    await supa.from('harvest_logs').delete().eq('plant_id', dbId).eq('harvest_date', today);
-    const prevHarvest = DAILY_LOGS[key]?.harvest || 0;
-    if(DAILY_LOGS[key]){ DAILY_LOGS[key].harvest=0; DAILY_LOGS[key].weight=null; DAILY_LOGS[key].quality=null; }
-    if(plant) plant.totalHarvest = Math.max(0, (plant.totalHarvest||0) - prevHarvest);
-
-  } else if(type === 'health'){
-    const {data:events} = await supa.from('health_events').select('id').eq('plant_id', dbId).eq('identified_date', today);
-    for(const ev of events||[]) await supa.from('health_events').delete().eq('id', ev.id);
-    if(DAILY_LOGS[key]){ DAILY_LOGS[key].health=false; DAILY_LOGS[key].healthType=null; DAILY_LOGS[key].healthSeverity=null; DAILY_LOGS[key].healthNotes=null; }
-  }
-
-  closeQuickLog();
-  renderPlantLogList();
-  if(currentDetailPlantId === dbId){
-    const cat = CATALOG.find(c=>c.common_name===plant?.type||c.variety===plant?.type)||{};
-    renderPlantDetailTab('overview', plant, cat);
-  }
-}
+// ── Plant Detail page ─────────────────────────────────────────────────────────
 function openPlantFromOverview(dbId){
   switchTab('log');
   openPlantDetail(dbId);
@@ -5854,26 +5616,6 @@ async function renderPlantDetailTab(tab, plant, cat){
     const statusTxt=plant.archived?"Archived":plant.removed?"Finished":"Active";
     const days=plant.planted?daysBetween(parseD(plant.planted),parseD(plant.removed)||TODAY):"—";
 
-    // Quick-log buttons for overview tab
-    const todayOv = isoDate(new Date());
-    const logOv = DAILY_LOGS[`${plant.id}|${todayOv}`] || {};
-    const wOnOv  = logOv.watered    ? 'ql-water-on'   : '';
-    const fOnOv  = logOv.fertilizer ? 'ql-fert-on'    : '';
-    const hOnOv  = (logOv.harvest||0)>0 ? 'ql-harvest-on' : '';
-    const heOnOv = logOv.health     ? 'ql-health-on'  : '';
-    const quickLogSection = `<div class="pd-section">
-      <div class="pd-section-hdr">Quick Log — Today</div>
-      <div class="pd-section-body" style="padding:12px 16px">
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="plog-qbtn ${wOnOv}" onclick="quickLogWater('${plant._dbId}','${plant.id}');const cat=CATALOG.find(c=>c.common_name===PLANTS.find(p=>p._dbId==='${plant._dbId}')?.type||c.variety===PLANTS.find(p=>p._dbId==='${plant._dbId}')?.type)||{};renderPlantDetailTab('overview',PLANTS.find(p=>p._dbId==='${plant._dbId}'),cat);renderPlantLogList()" style="padding:7px 16px;font-size:11px">💧 ${logOv.watered?'Watered today ✓':'Water'}</button>
-          <button class="plog-qbtn ${fOnOv}" onclick="showQuickLog('${plant._dbId}','${plant.id}','fert',this)" style="padding:7px 16px;font-size:11px">🍗 ${logOv.fertilizer?'Fertilized today ✓':'Fertilize'}</button>
-          <button class="plog-qbtn ${hOnOv}" onclick="showQuickLog('${plant._dbId}','${plant.id}','harvest',this)" style="padding:7px 16px;font-size:11px">🧺 ${(logOv.harvest||0)>0?'Harvested today ✓':'Harvest'}</button>
-          <button class="plog-qbtn ${heOnOv}" onclick="showQuickLog('${plant._dbId}','${plant.id}','health',this)" style="padding:7px 16px;font-size:11px">🐞 ${logOv.health?'Health logged ✓':'Health Event'}</button>
-        </div>
-        ${logOv.watered||logOv.fertilizer||(logOv.harvest>0)||logOv.health?`<div style="margin-top:8px;font-size:10px;color:var(--text-secondary)">Logged today: ${[logOv.watered?'💧 Water':'',logOv.fertilizer?`🍗 ${logOv.fertilizer}`:'',logOv.harvest>0?`🧺 ${logOv.harvest} harvested`:'',logOv.health?'🐞 Health event':''].filter(Boolean).join(' · ')}</div>`:''}
-      </div>
-    </div>`;
-
     content.innerHTML=`<div class="pd-panel">
       <div style="display:flex;gap:20px;align-items:flex-start;margin-bottom:16px">
         ${catImg}
@@ -5890,7 +5632,6 @@ async function renderPlantDetailTab(tab, plant, cat){
           </div>
         </div>
       </div>
-      ${quickLogSection}
       <div class="pd-section">
         <div class="pd-section-hdr">Lifecycle</div>
         <div class="pd-section-body" style="padding:10px 20px 12px">
