@@ -2210,8 +2210,21 @@ function renderCatalogMobile(search=''){
     (c.subcategory||'').toLowerCase().includes(term)||
     (c.variety||c.common_name||'').toLowerCase().includes(term)
   );
+
+  // Ensure wrap fills available height on mobile
+  wrap.style.flex='1';
+  wrap.style.overflowY='auto';
+  wrap.style.overflowX='hidden';
+
+  if(!rows.length){
+    wrap.innerHTML=`<div style="padding:40px 20px;text-align:center;color:var(--text-secondary);font-size:12px">${
+      CATALOG.length===0 ? 'Loading plant catalog…' : 'No plants match your search.'
+    }</div>`;
+    return;
+  }
+
   const groups={};
-  rows.forEach(c=>{ const fam=c.category||'Other'; if(!groups[fam]) groups[fam]=[]; groups[fam].push(c); });
+  rows.forEach(c=>{ const fam=c.category||c.family||'Other'; if(!groups[fam]) groups[fam]=[]; groups[fam].push(c); });
 
   let h='<div style="background:var(--bg)">';
   Object.entries(groups).forEach(([fam,items])=>{
@@ -2221,8 +2234,6 @@ function renderCatalogMobile(search=''){
     items.forEach(c=>{
       const variety=c.variety||c.common_name||'';
       const activePlants=PLANTS.filter(p=>!p.archived&&!p.removed&&(p.type===variety||p.type===c.common_name));
-      const isLocked=!!c.photo_locked;
-      const canEdit=IS_ADMIN||!isLocked;
       const imgHtml=c.cover_photo_url
         ?`<img src="${c.cover_photo_url}" style="width:100%;height:100%;object-fit:cover;display:block"/>`
         :`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--border)">🌱</div>`;
@@ -2230,14 +2241,14 @@ function renderCatalogMobile(search=''){
         ?`<span style="background:rgba(79,166,106,.12);color:var(--nav-text,var(--nav));font-size:7px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px">${activePlants.length} active</span>`:'';
       const subText=[c.subcategory,c.variety&&c.subcategory!==c.variety?c.variety:''].filter(Boolean).join(' · ')||c.category||'';
       h+=`<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:0.5px solid var(--border);background:var(--card)">
-        <div onclick="${canEdit?`triggerImgUpload('${c.id}')`:''}" style="width:44px;height:44px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--bg);cursor:${canEdit?'pointer':'default'}">${imgHtml}</div>
+        <div style="width:44px;height:44px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--bg)">${imgHtml}</div>
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;margin-bottom:2px">
             <span style="font-size:12px;font-weight:600;color:var(--text-body)">${variety}</span>${activeBadge}
           </div>
           <div style="font-size:9px;color:var(--text-secondary)">${subText}</div>
         </div>
-        <button onclick="openAddPlantModal('${c.id}')" style="background:var(--nav);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:10px;font-family:'DM Mono',monospace;cursor:pointer;flex-shrink:0;white-space:nowrap">+ Add</button>
+        <button onclick="openPlantModal('${c.id}')" style="background:var(--nav);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:10px;font-family:'DM Mono',monospace;cursor:pointer;flex-shrink:0;white-space:nowrap">+ Add</button>
       </div>`;
     });
   });
