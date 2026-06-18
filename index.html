@@ -1361,7 +1361,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   </div>
 
   <!-- ── CATALOG ADD/EDIT MODAL ── -->
-  <div id="catalog-overlay" onclick="if(event.target.id==='catalog-overlay')closeCatalogModal()" style="display:none;position:fixed;inset:0;background:rgba(20,30,25,.5);z-index:500;align-items:center;justify-content:center">
+  <div id="catalog-overlay" onclick="if(!event.target.closest('#catalog-modal-inner'))closeCatalogModal()" style="display:none;position:fixed;inset:0;background:rgba(20,30,25,.5);z-index:500;align-items:center;justify-content:center">
     <div id="catalog-modal-inner" style="background:var(--card);border-radius:12px;padding:24px 28px;min-width:420px;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 16px 50px rgba(0,0,0,.3)">
       <h2 id="catalog-modal-title" class="modal-title" style="font-family:'Fraunces',serif;font-size:18px;margin-bottom:18px;font-weight:600">Add Plant to Catalog</h2>
       <input type="hidden" id="cm-id"/>
@@ -1420,7 +1420,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   <input type="file" id="catalog-img-shared" accept="image/*" style="display:none" onchange="handleImageUpload(this.dataset.catalogId, this)"/>
 
   <!-- ── PLANT-IN-GARDEN MODAL ── -->
-  <div id="plant-overlay" onclick="if(event.target.id==='plant-overlay')closePlantModal()" style="display:none;position:fixed;inset:0;background:rgba(20,30,25,.5);z-index:500;align-items:center;justify-content:center">
+  <div id="plant-overlay" onclick="if(!event.target.closest('#plant-overlay > div'))closePlantModal()" style="display:none;position:fixed;inset:0;background:rgba(20,30,25,.5);z-index:500;align-items:center;justify-content:center">
     <div style="background:var(--card);border-radius:12px;padding:24px 28px;min-width:360px;max-width:440px;box-shadow:0 16px 50px rgba(0,0,0,.3)">
       <h2 style="font-family:'Fraunces',serif;font-size:18px;color:var(--nav);margin-bottom:6px;font-weight:600">🌱 Plant in My Garden</h2>
       <p id="plant-modal-variety" style="font-size:12px;color:#888;margin-bottom:18px"></p>
@@ -1474,7 +1474,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 </div>
 
 <!-- ── Bulk action panels — static HTML, direct body children ─────────────── -->
-<div id="bulk-water-overlay" onclick="if(event.target.id==='bulk-water-overlay')closeBulkPanel()">
+<div id="bulk-water-overlay" onclick="if(!event.target.closest('.bulk-sheet'))closeBulkPanel()">
   <div class="bulk-sheet">
     <div class="bulk-hdr">
       <span style="font-size:20px">💧</span>
@@ -1494,7 +1494,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     </div>
   </div>
 </div>
-<div id="bulk-fert-overlay" onclick="if(event.target.id==='bulk-fert-overlay')closeBulkPanel()">
+<div id="bulk-fert-overlay" onclick="if(!event.target.closest('.bulk-sheet'))closeBulkPanel()">
   <div class="bulk-sheet">
     <div class="bulk-hdr">
       <span style="font-size:20px">🍗</span>
@@ -1525,7 +1525,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     </div>
   </div>
 </div>
-<div id="bulk-harvest-overlay" onclick="if(event.target.id==='bulk-harvest-overlay')closeBulkPanel()">
+<div id="bulk-harvest-overlay" onclick="if(!event.target.closest('.bulk-sheet'))closeBulkPanel()">
   <div class="bulk-sheet">
     <div class="bulk-hdr">
       <span style="font-size:20px">🍅</span>
@@ -1543,7 +1543,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   </div>
 </div>
 <!-- Harvest Edit Panel -->
-<div id="harvest-edit-overlay" onclick="if(event.target.id==='harvest-edit-overlay')closeHarvestEdit()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
+<div id="harvest-edit-overlay" onclick="if(!event.target.closest('[style*="background:var"]')&&!event.target.closest('.he-panel'))closeHarvestEdit()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
   <div class="bulk-sheet">
     <div class="bulk-hdr">
       <span style="font-size:20px">🧺</span>
@@ -1589,7 +1589,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 <!-- Timeline tooltip -->
 <div id="tl-tooltip"></div>
 <!-- Health Event Edit Panel -->
-<div id="health-edit-overlay" onclick="if(event.target.id==='health-edit-overlay')closeHealthEdit()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
+<div id="health-edit-overlay" onclick="if(!event.target.closest('.health-edit-panel'))closeHealthEdit()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
   <div class="bulk-sheet" style="max-width:500px">
     <div class="bulk-hdr">
       <span style="font-size:20px">🐞</span>
@@ -1657,7 +1657,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   </div>
 </div>
 <!-- Activity Edit Panel -->
-<div id="activity-edit-overlay" onclick="if(event.target.id==='activity-edit-overlay')closeActivityEdit()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
+<div id="activity-edit-overlay" onclick="if(!event.target.closest('.activity-edit-panel'))closeActivityEdit()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
   <div class="bulk-sheet" style="max-width:560px">
     <div class="bulk-hdr">
       <span style="font-size:20px">📋</span>
@@ -1718,7 +1718,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     </div>
   </div>
 </div>
-<div id="bulk-health-overlay" onclick="if(event.target.id==='bulk-health-overlay')closeBulkPanel()">
+<div id="bulk-health-overlay" onclick="if(!event.target.closest('.bulk-sheet'))closeBulkPanel()">
   <div class="bulk-sheet">
     <div class="bulk-hdr">
       <span style="font-size:20px">🐞</span>
@@ -1758,7 +1758,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     </div>
   </div>
 </div>
-<div id="settings-overlay" onclick="if(event.target.id==='settings-overlay')closeSettings()">
+<div id="settings-overlay" onclick="if(!event.target.closest('.settings-panel'))closeSettings()">
   <div id="settings-modal">
     <h2>Garden Settings</h2>
     <div class="settings-row">
