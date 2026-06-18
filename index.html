@@ -1888,7 +1888,7 @@ function quickLogWater(dbId, plantCode){
   if(existing.watered){ existing.watered=false; } else { existing.watered=true; }
   DAILY_LOGS[key]={...existing};
   const row = withUser({plant_id:dbId, log_date:today, watered:DAILY_LOGS[key].watered});
-  supa.from('plant_daily_logs').upsert(row,{onConflict:'plant_id,log_date'}).then(({error})=>{
+  supa.from('daily_logs').upsert(row,{onConflict:'plant_id,log_date'}).then(({error})=>{
     if(error) console.error('quickLogWater',error);
   });
   renderPlantLogList();
@@ -3263,9 +3263,9 @@ function activeUserId(){
   return adminViewingUserId || currentUser?.id;
 }
 
-// Add user_id + garden_id to every Supabase insert row
+// Add user_id to every Supabase insert row
 function withUser(row){
-  return {...row, user_id: activeUserId(), garden_id: DEFAULT_GARDEN_ID};
+  return {...row, user_id: activeUserId()};
 }
 
 async function initData(){
