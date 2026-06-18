@@ -5175,13 +5175,27 @@ async function saveCatalogEntry(){
     harvest_window:  parseInt(document.getElementById("cm-window").value)||null,
     description: document.getElementById("cm-desc").value.trim()||null,
     is_perennial: document.getElementById("cm-perennial").value==="1",
-    owner_id:    null, // public by default; set to user id for private
+    owner_id:    null,
   };
   if(!data.variety){ alert("Variety name is required."); return; }
+  if(!data.family)  { alert("Category is required."); return; }
+
+  const saveBtn=document.querySelector('#catalog-overlay .settings-btn.primary');
+  if(saveBtn){ saveBtn.textContent='Saving…'; saveBtn.disabled=true; }
+
+  let error;
   if(id){
-    await supa.from("plant_catalog").update(data).eq("id",id);
+    ({error}=await supa.from("plant_catalog").update(data).eq("id",id));
   } else {
-    await supa.from("plant_catalog").insert(data);
+    ({error}=await supa.from("plant_catalog").insert(data));
+  }
+
+  if(saveBtn){ saveBtn.textContent='Save'; saveBtn.disabled=false; }
+
+  if(error){
+    console.error("saveCatalogEntry error:",error);
+    alert(`Could not save: ${error.message}`);
+    return;
   }
   closeCatalogModal();
   loadCatalog();
