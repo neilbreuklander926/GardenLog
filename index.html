@@ -2202,7 +2202,7 @@ function renderPlantLogListMobile(search=''){
 
 // ── Mobile Plant Database — Photo List Row ─────────────────────────────────────
 function renderCatalogMobile(search=''){
-  const wrap=document.getElementById('catalog-table-wrap');
+  const wrap=document.querySelector('.catalog-table-wrap');
   if(!wrap) return;
   const term=(search||document.getElementById('catalog-search')?.value||'').toLowerCase();
   const rows=CATALOG.filter(c=>!term||
