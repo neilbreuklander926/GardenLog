@@ -826,6 +826,30 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     .bulk-body{padding:0 !important}
     [style*="min-width:420px"],[style*="min-width:380px"],[style*="min-width:360px"]{min-width:0 !important;width:calc(100vw - 32px) !important}
 
+    /* ── Catalog & plant modals: full-width on mobile ── */
+    #catalog-modal-inner{
+      min-width:0 !important;
+      width:calc(100vw - 24px) !important;
+      max-width:calc(100vw - 24px) !important;
+      padding:16px !important;
+      margin:12px;
+      max-height:calc(100dvh - 24px) !important;
+    }
+    /* Prevent iOS auto-zoom on input focus (requires font-size ≥ 16px) */
+    #catalog-modal-inner .settings-input,
+    #catalog-modal-inner select,
+    #catalog-modal-inner textarea{ font-size:16px !important }
+    /* Duration fields: 2×2 grid on mobile */
+    .cm-duration-row{ gap:8px !important }
+    .cm-duration-row > div{ min-width:calc(50% - 4px) !important; flex-basis:calc(50% - 4px) !important }
+    /* Plant modal */
+    #plant-overlay > div{
+      min-width:0 !important;
+      width:calc(100vw - 24px) !important;
+      padding:16px !important;
+    }
+    #plant-overlay .settings-input{ font-size:16px !important }
+
     /* ── Photo grids / harvest table / tooltips ── */
     .plog-photo-grid{grid-template-columns:repeat(3,1fr) !important}
     .pd-harvest-table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -1338,7 +1362,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
   <!-- ── CATALOG ADD/EDIT MODAL ── -->
   <div id="catalog-overlay" onclick="if(event.target.id==='catalog-overlay')closeCatalogModal()" style="display:none;position:fixed;inset:0;background:rgba(20,30,25,.5);z-index:500;align-items:center;justify-content:center">
-    <div style="background:var(--card);border-radius:12px;padding:24px 28px;min-width:420px;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 16px 50px rgba(0,0,0,.3)">
+    <div id="catalog-modal-inner" style="background:var(--card);border-radius:12px;padding:24px 28px;min-width:420px;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 16px 50px rgba(0,0,0,.3)">
       <h2 id="catalog-modal-title" class="modal-title" style="font-family:'Fraunces',serif;font-size:18px;margin-bottom:18px;font-weight:600">Add Plant to Catalog</h2>
       <input type="hidden" id="cm-id"/>
       <div class="settings-row">
@@ -1355,20 +1379,20 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       </div>
       <div class="settings-row">
         <div style="font-size:10px;color:#888;margin-bottom:6px">Growth Phase Durations — <em>values in days · leave blank to mark a phase N/A on the timeline</em></div>
-        <div style="display:flex;gap:12px">
-          <div style="flex:1">
+        <div class="cm-duration-row" style="display:flex;gap:12px;flex-wrap:wrap">
+          <div style="flex:1;min-width:100px">
             <label class="settings-label">Sprout</label>
             <input class="settings-input" id="cm-sprout" type="number" placeholder="7"/>
           </div>
-          <div style="flex:1">
+          <div style="flex:1;min-width:100px">
             <label class="settings-label">First Fruit</label>
             <input class="settings-input" id="cm-flower" type="number" placeholder="45" title="Leave blank to skip this phase (e.g. herbs)"/>
           </div>
-          <div style="flex:1">
+          <div style="flex:1;min-width:100px">
             <label class="settings-label">Harvest</label>
             <input class="settings-input" id="cm-harvest" type="number" placeholder="50"/>
           </div>
-          <div style="flex:1">
+          <div style="flex:1;min-width:100px">
             <label class="settings-label">Window</label>
             <input class="settings-input" id="cm-window" type="number" placeholder="60"/>
           </div>
@@ -1392,6 +1416,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       </div>
     </div>
   </div>
+  <!-- Shared hidden file input for catalog image upload (used by triggerImgUpload on mobile) -->
+  <input type="file" id="catalog-img-shared" accept="image/*" style="display:none" onchange="handleImageUpload(this.dataset.catalogId, this)"/>
 
   <!-- ── PLANT-IN-GARDEN MODAL ── -->
   <div id="plant-overlay" onclick="if(event.target.id==='plant-overlay')closePlantModal()" style="display:none;position:fixed;inset:0;background:rgba(20,30,25,.5);z-index:500;align-items:center;justify-content:center">
@@ -2237,16 +2263,15 @@ function renderCatalogMobile(search=''){
       const isLocked=!!c.photo_locked;
       const canEdit=IS_ADMIN||!isLocked;
 
-      // Photo cell — tap to upload, ✕ to remove (mirrors desktop)
+      // Photo cell — tap to view lightbox (with replace/delete), or tap to upload if no photo
       let photoHtml;
       if(c.cover_photo_url){
-        photoHtml=`<div style="position:relative;width:44px;height:44px;flex-shrink:0" onclick="event.stopPropagation();${canEdit?`triggerImgUpload('${c.id}')`:''}">
-          <img src="${c.cover_photo_url}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;display:block"/>
-          ${canEdit?`<button onclick="event.stopPropagation();deleteEntryPhoto('${c.id}')" style="position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;border:none;border-radius:50%;width:16px;height:16px;font-size:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;padding:0">✕</button>`:''}
+        photoHtml=`<div style="position:relative;width:44px;height:44px;flex-shrink:0" onclick="event.stopPropagation();openCatalogPhotoLightbox('${c.id}','${c.cover_photo_url}',${canEdit})">
+          <img src="${c.cover_photo_url}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;display:block;cursor:zoom-in"/>
+          <div style="position:absolute;bottom:-1px;right:-1px;background:rgba(0,0,0,.5);border-radius:3px;font-size:8px;padding:1px 3px;color:#fff;pointer-events:none">🔍</div>
         </div>`;
       } else {
-        photoHtml=`<div onclick="event.stopPropagation();${canEdit?`triggerImgUpload('${c.id}')`:''}
-          " style="width:44px;height:44px;border-radius:8px;border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--text-secondary);cursor:${canEdit?'pointer':'default'};flex-shrink:0;background:var(--card)">${canEdit?'📷':'🌱'}</div>`;
+        photoHtml=`<div onclick="event.stopPropagation();${canEdit?`triggerImgUpload('${c.id}')`:''}" style="width:44px;height:44px;border-radius:8px;border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--text-secondary);cursor:${canEdit?'pointer':'default'};flex-shrink:0;background:var(--card)">${canEdit?'📷':'🌱'}</div>`;
       }
 
       const activeBadge=activePlants.length
@@ -4959,7 +4984,8 @@ function renderCatalog(search=""){
              background:rgba(0,0,0,.45);border-radius:4px;padding:1px 4px;font-size:10px">🔒</span>`;
       imgContent = `<div style="position:relative;display:inline-block">
         <img class="cat-img-thumb" src="${c.cover_photo_url}" alt="${variety}"
-          ${canEdit?`onclick="triggerImgUpload('${c.id}')" title="Click or drag to change image"`:'style="cursor:default"'}/>
+          onclick="openCatalogPhotoLightbox('${c.id}','${c.cover_photo_url}',${canEdit})"
+          style="cursor:zoom-in" title="Click to view full size"/>
         ${deleteBtn}
       </div>`;
     } else {
@@ -5044,7 +5070,38 @@ function handleDragLeave(catalogId, event){
   }
 }
 function triggerImgUpload(catalogId){
-  document.getElementById("img-"+catalogId)?.click();
+  // Desktop: use the per-row hidden input inside the table
+  const perRow=document.getElementById("img-"+catalogId);
+  if(perRow){ perRow.click(); return; }
+  // Mobile (table replaced by list): use the shared hidden input
+  const shared=document.getElementById("catalog-img-shared");
+  if(shared){ shared.dataset.catalogId=catalogId; shared.value=''; shared.click(); }
+}
+
+// Catalog photo lightbox — full-size view with Replace / Delete actions (mobile + desktop)
+function openCatalogPhotoLightbox(catalogId, url, canEdit){
+  const ov=document.createElement('div');
+  ov.id='cat-photo-lb';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:16px';
+  ov.innerHTML=`
+    <img src="${url}" style="max-width:min(92vw,680px);max-height:70vh;border-radius:8px;object-fit:contain;flex-shrink:0"/>
+    ${canEdit?`
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+      <button onclick="document.getElementById('cat-photo-lb').remove();triggerImgUpload('${catalogId}')"
+        style="background:#1E5B35;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;min-height:44px">
+        📷 Replace Photo
+      </button>
+      <button onclick="document.getElementById('cat-photo-lb').remove();deleteEntryPhoto('${catalogId}')"
+        style="background:transparent;color:var(--danger,#C94B4B);border:1px solid var(--danger,#C94B4B);border-radius:8px;padding:10px 20px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;min-height:44px">
+        🗑️ Delete Photo
+      </button>
+    </div>`:''}
+    <button onclick="document.getElementById('cat-photo-lb').remove()"
+      style="background:rgba(255,255,255,.12);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:8px 20px;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;min-height:44px">
+      ✕ Close
+    </button>`;
+  ov.addEventListener('click', e=>{ if(e.target===ov) ov.remove(); });
+  document.body.appendChild(ov);
 }
 async function handleImageDrop(catalogId, event){
   event.preventDefault();
