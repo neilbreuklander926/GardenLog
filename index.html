@@ -3328,6 +3328,9 @@ async function initData(){
     return;
   }
   currentUser=session.user;
+  // Determine admin status by email — admin can manage the shared plant catalog
+  const ADMIN_EMAILS=['numbertwoopen@yahoo.com','concretegardenerca@gmail.com'];
+  IS_ADMIN=ADMIN_EMAILS.includes((session.user.email||'').toLowerCase());
   currentUserRole=await getProfile(session.user.id);
   document.getElementById('auth-overlay').classList.add('hidden');
   updateAuthUI(session.user, currentUserRole);
@@ -4942,7 +4945,7 @@ function saveSettingsFromTab(){
   const btn=document.querySelector('#settings-tab-content .log-save-btn');
   if(btn){ const orig=btn.textContent; btn.textContent='✓ Saved!'; setTimeout(()=>btn.textContent=orig,1500); }
 }
-const IS_ADMIN = true;
+let IS_ADMIN = false; // set dynamically after auth based on logged-in email
 
 // ── Catalog state ─────────────────────────────────────────────────────────────
 let CATALOG = [];
@@ -5175,7 +5178,8 @@ async function saveCatalogEntry(){
     harvest_window:  parseInt(document.getElementById("cm-window").value)||null,
     description: document.getElementById("cm-desc").value.trim()||null,
     is_perennial: document.getElementById("cm-perennial").value==="1",
-    owner_id:    null,
+    // Admin: public entry (null = visible to all). Regular user: private entry (their uid only)
+    owner_id: IS_ADMIN ? null : activeUserId(),
   };
   if(!data.variety){ alert("Variety name is required."); return; }
   if(!data.family)  { alert("Category is required."); return; }
