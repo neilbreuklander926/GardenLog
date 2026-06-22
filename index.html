@@ -4418,7 +4418,7 @@ function _openOverlay(id){
 // ── Bulk Water ────────────────────────────────────────────────────────────────
 function openBulkWater(dateStr){
   try{
-    bulkActionDate=dateStr;
+    bulkActionDate=dateStr||isoDate(new Date());
     const plants=getActivePlantsForBulk();
     document.getElementById('bw-date').textContent=fmt(dateStr);
     const list=document.getElementById('bw-plant-list');
@@ -4474,7 +4474,7 @@ async function saveBulkWater(){
 // ── Bulk Fertilize ────────────────────────────────────────────────────────────
 function openBulkFert(dateStr){
   try{
-    bulkActionDate=dateStr;
+    bulkActionDate=dateStr||isoDate(new Date());
     const plants=getActivePlantsForBulk();
     document.getElementById('bf-date').textContent=fmt(dateStr);
     document.getElementById('bf-notes').value='';
@@ -4532,9 +4532,9 @@ async function saveBulkFert(){
 // ── Bulk Harvest ──────────────────────────────────────────────────────────────
 function openBulkHarvest(dateStr){
   try{
-    bulkActionDate=dateStr;
+    bulkActionDate=dateStr||isoDate(new Date());
     const plants=getActivePlantsForBulk();
-    document.getElementById('bh-date').textContent=fmt(dateStr);
+    document.getElementById('bh-date').textContent=fmt(bulkActionDate);
     const list=document.getElementById('bh-plant-list');
     list.innerHTML=plants.map(p=>`
       <div class="bulk-plant-row" data-pid="${p.id}" style="flex-wrap:wrap;gap:6px">
@@ -4661,10 +4661,10 @@ let bulkHealthType = null;
 
 function openBulkHealth(dateStr){
   try{
-    bulkActionDate=dateStr;
+    bulkActionDate=dateStr||isoDate(new Date());
     bulkHealthType=null;
   const plants=getActivePlantsForBulk();
-  document.getElementById('bhe-date').textContent=fmt(dateStr);
+  document.getElementById('bhe-date').textContent=fmt(bulkActionDate);
   document.getElementById('bhe-notes').value='';
   document.querySelectorAll('[data-htype]').forEach(b=>b.classList.remove('on'));
   const list=document.getElementById('bhe-plant-list');
