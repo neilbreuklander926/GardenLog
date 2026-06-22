@@ -1362,7 +1362,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
   <!-- ── CATALOG ADD/EDIT MODAL ── -->
   <div id="catalog-overlay" onclick="if(!event.target.closest('#catalog-modal-inner'))closeCatalogModal()" style="display:none;position:fixed;inset:0;background:rgba(20,30,25,.5);z-index:500;align-items:center;justify-content:center">
-    <div id="catalog-modal-inner" style="background:var(--card);border-radius:12px;padding:24px 28px;min-width:420px;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 16px 50px rgba(0,0,0,.3)">
+    <div id="catalog-modal-inner" onclick="event.stopPropagation()" style="background:var(--card);border-radius:12px;padding:24px 28px;min-width:420px;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 16px 50px rgba(0,0,0,.3)">
       <h2 id="catalog-modal-title" class="modal-title" style="font-family:'Fraunces',serif;font-size:18px;margin-bottom:18px;font-weight:600">Add Plant to Catalog</h2>
       <input type="hidden" id="cm-id"/>
       <div class="settings-row">
@@ -1475,7 +1475,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
 <!-- ── Bulk action panels — static HTML, direct body children ─────────────── -->
 <div id="bulk-water-overlay" onclick="if(!event.target.closest('.bulk-sheet'))closeBulkPanel()">
-  <div class="bulk-sheet">
+  <div class="bulk-sheet" onclick="event.stopPropagation()">
     <div class="bulk-hdr">
       <span style="font-size:20px">💧</span>
       <span class="bulk-hdr-title">Log watering</span>
@@ -1495,7 +1495,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   </div>
 </div>
 <div id="bulk-fert-overlay" onclick="if(!event.target.closest('.bulk-sheet'))closeBulkPanel()">
-  <div class="bulk-sheet">
+  <div class="bulk-sheet" onclick="event.stopPropagation()">
     <div class="bulk-hdr">
       <span style="font-size:20px">🍗</span>
       <span class="bulk-hdr-title">Log fertilizing</span>
@@ -1526,7 +1526,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   </div>
 </div>
 <div id="bulk-harvest-overlay" onclick="if(!event.target.closest('.bulk-sheet'))closeBulkPanel()">
-  <div class="bulk-sheet">
+  <div class="bulk-sheet" onclick="event.stopPropagation()">
     <div class="bulk-hdr">
       <span style="font-size:20px">🍅</span>
       <span class="bulk-hdr-title">Log harvest</span>
@@ -1544,7 +1544,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 </div>
 <!-- Harvest Edit Panel -->
 <div id="harvest-edit-overlay" onclick="if(!event.target.closest('[style*="background:var"]')&&!event.target.closest('.he-panel'))closeHarvestEdit()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
-  <div class="bulk-sheet">
+  <div class="bulk-sheet" onclick="event.stopPropagation()">
     <div class="bulk-hdr">
       <span style="font-size:20px">🧺</span>
       <span class="bulk-hdr-title">Edit Harvest Entry</span>
@@ -1590,7 +1590,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 <div id="tl-tooltip"></div>
 <!-- Health Event Edit Panel -->
 <div id="health-edit-overlay" onclick="if(!event.target.closest('.health-edit-panel'))closeHealthEdit()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
-  <div class="bulk-sheet" style="max-width:500px">
+  <div class="bulk-sheet" onclick="event.stopPropagation()" style="max-width:500px">
     <div class="bulk-hdr">
       <span style="font-size:20px">🐞</span>
       <span class="bulk-hdr-title">Edit Health Event</span>
@@ -1658,7 +1658,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 </div>
 <!-- Activity Edit Panel -->
 <div id="activity-edit-overlay" onclick="if(!event.target.closest('.activity-edit-panel'))closeActivityEdit()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
-  <div class="bulk-sheet" style="max-width:560px">
+  <div class="bulk-sheet" onclick="event.stopPropagation()" style="max-width:560px">
     <div class="bulk-hdr">
       <span style="font-size:20px">📋</span>
       <span class="bulk-hdr-title">Edit Activity Entry</span>
@@ -1719,7 +1719,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   </div>
 </div>
 <div id="bulk-health-overlay" onclick="if(!event.target.closest('.bulk-sheet'))closeBulkPanel()">
-  <div class="bulk-sheet">
+  <div class="bulk-sheet" onclick="event.stopPropagation()">
     <div class="bulk-hdr">
       <span style="font-size:20px">🐞</span>
       <span class="bulk-hdr-title">Log health event</span>
@@ -2031,11 +2031,33 @@ function renderMobileOverview(){
     return new Date(d+"T00:00:00").toLocaleDateString('en-US',{month:'short',day:'numeric'});
   };
 
-  const active=PLANTS.filter(p=>!p.archived&&filterFlags.active||(p.removed&&filterFlags.finished));
+  const active=PLANTS.filter(p=>{
+    if(!filterFlags.active  && !p.archived && !p.removed) return false;
+    if(!filterFlags.finished && p.removed  && !p.archived) return false;
+    if(!filterFlags.archived && p.archived) return false;
+    if(timelineSearch){
+      const t=timelineSearch.toLowerCase();
+      if(!p.type.toLowerCase().includes(t)&&!p.id.toLowerCase().includes(t)&&!p.family.toLowerCase().includes(t)) return false;
+    }
+    return true;
+  });
   const groups={};
   active.forEach(p=>{ if(!groups[p.family]) groups[p.family]=[]; groups[p.family].push(p); });
 
+  const fBtnStyle=(on,color)=>`background:${on?`rgba(${color},.15)`:'var(--fbg)'};border:1px solid ${on?`rgba(${color},.5)`:'var(--border)'};border-radius:14px;padding:4px 10px;font-size:9px;font-family:'DM Mono',monospace;cursor:pointer;color:${on?`rgb(${color})`:'var(--text-secondary)'};font-weight:${on?'700':'400'}`;
+
   let h=`<div style="padding:8px">
+    <!-- Filter bar -->
+    <div style="display:flex;gap:6px;margin-bottom:10px;align-items:center">
+      <input type="text" placeholder="Search plants…" value="${timelineSearch||''}"
+        oninput="timelineSearch=this.value;renderMobileOverview()"
+        style="flex:1;min-width:0;padding:6px 10px;font-size:11px;font-family:'DM Mono',monospace;background:var(--card);border:1px solid var(--border);border-radius:7px;color:var(--text-body);outline:none"/>
+    </div>
+    <div style="display:flex;gap:5px;margin-bottom:12px;flex-wrap:wrap">
+      <button onclick="filterFlags.active=!filterFlags.active;renderMobileOverview()" style="${fBtnStyle(filterFlags.active,'79,166,106')}">Active</button>
+      <button onclick="filterFlags.finished=!filterFlags.finished;renderMobileOverview()" style="${fBtnStyle(filterFlags.finished,'197,162,83')}">Finished</button>
+      <button onclick="filterFlags.archived=!filterFlags.archived;renderMobileOverview()" style="${fBtnStyle(filterFlags.archived,'169,178,169')}">Archived</button>
+    </div>
     <!-- Bulk action bar -->
     <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
       <button onclick="openBulkWater()" style="flex:1;min-width:60px;background:rgba(91,168,214,.1);border:1px solid rgba(91,168,214,.3);border-radius:8px;padding:9px 6px;font-size:11px;color:#5BA8D6;font-family:'DM Mono',monospace;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px">
@@ -2208,17 +2230,25 @@ function renderPlantLogListMobile(search=''){
             <div style="font-size:7px;color:var(--text-secondary)">harvested</div>
           </div>
         </div>
-        <div style="display:flex;gap:6px;padding:0 12px 10px">
-          <button onclick="quickLogWater('${p._dbId}','${p.id}')" style="flex:1;background:${wateredToday?'rgba(91,168,214,.18)':'var(--fbg)'};border:1px solid ${wateredToday?'rgba(91,168,214,.5)':'var(--border)'};border-radius:6px;padding:6px 4px;font-size:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:'DM Mono',monospace;transition:all .15s">
+        <div style="display:flex;gap:5px;padding:0 12px 10px">
+          <button onclick="event.stopPropagation();quickLogWater('${p._dbId}','${p.id}')"
+            style="flex:1;background:${wateredToday?'rgba(91,168,214,.18)':'var(--fbg)'};border:1px solid ${wateredToday?'rgba(91,168,214,.5)':'var(--border)'};border-radius:6px;padding:6px 2px;font-size:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:'DM Mono',monospace">
             <span>💧</span><span style="font-size:7px;color:${wateredToday?'#5BA8D6':'var(--text-secondary)'}${wateredToday?';font-weight:700':''}">Water${wateredToday?' ✓':''}</span>
           </button>
-          <button onclick="openPlantDetail('${p._dbId}')" style="flex:1;background:${fertToday?'rgba(213,181,106,.15)':'var(--fbg)'};border:1px solid ${fertToday?'rgba(213,181,106,.4)':'var(--border)'};border-radius:6px;padding:6px 4px;font-size:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:'DM Mono',monospace">
+          <button onclick="event.stopPropagation();openPlantDetailOnTab('${p._dbId}','activity')"
+            style="flex:1;background:${fertToday?'rgba(213,181,106,.15)':'var(--fbg)'};border:1px solid ${fertToday?'rgba(213,181,106,.4)':'var(--border)'};border-radius:6px;padding:6px 2px;font-size:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:'DM Mono',monospace">
             <span>🍗</span><span style="font-size:7px;color:${fertToday?'#D5B56A':'var(--text-secondary)'}${fertToday?';font-weight:700':''}">Fert${fertToday?' ✓':''}</span>
           </button>
-          <button onclick="openPlantDetail('${p._dbId}')" style="flex:1;background:${harvestToday?'rgba(79,166,106,.12)':'var(--fbg)'};border:1px solid ${harvestToday?'rgba(79,166,106,.4)':'var(--border)'};border-radius:6px;padding:6px 4px;font-size:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:'DM Mono',monospace">
-            <span>🧺</span><span style="font-size:7px;color:${harvestToday?'var(--nav-text, var(--nav))':'var(--text-secondary)'}${harvestToday?';font-weight:700':''}">Harvest${harvestToday?' ✓':''}</span>
+          <button onclick="event.stopPropagation();openPlantDetailOnTab('${p._dbId}','harvests')"
+            style="flex:1;background:${harvestToday?'rgba(79,166,106,.12)':'var(--fbg)'};border:1px solid ${harvestToday?'rgba(79,166,106,.4)':'var(--border)'};border-radius:6px;padding:6px 2px;font-size:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:'DM Mono',monospace">
+            <span>🧺</span><span style="font-size:7px;color:${harvestToday?'var(--nav-text,var(--nav))':'var(--text-secondary)'}${harvestToday?';font-weight:700':''}">Harvest${harvestToday?' ✓':''}</span>
           </button>
-          <button onclick="event.stopPropagation();openPlantLogMenu(event,'${p._dbId}','${p.id}')" style="background:var(--fbg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:14px;cursor:pointer;color:var(--text-secondary)">⋯</button>
+          <button onclick="event.stopPropagation();openPlantDetailOnTab('${p._dbId}','health')"
+            style="flex:1;background:var(--fbg);border:1px solid var(--border);border-radius:6px;padding:6px 2px;font-size:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:'DM Mono',monospace">
+            <span>🐞</span><span style="font-size:7px;color:var(--text-secondary)">Health</span>
+          </button>
+          <button onclick="event.stopPropagation();openPlantLogMenu(event,'${p._dbId}','${p.id}')"
+            style="background:var(--fbg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:14px;cursor:pointer;color:var(--text-secondary)">⋯</button>
         </div>
       </div>`;
     }).join('');
@@ -5367,6 +5397,13 @@ function renderPlantLogList(search=""){
 function openPlantFromOverview(dbId){
   switchTab('log');
   openPlantDetail(dbId);
+}
+
+// Open plant detail then jump straight to a specific tab (activity / harvests / health / photos)
+function openPlantDetailOnTab(dbId, tab){
+  // If we're on Timeline mobile, switch to Plant Log first
+  if(document.getElementById('view-log').style.display==='none') switchTab('log');
+  openPlantDetail(dbId).then(()=>{ try{ switchPlantTab(tab); }catch(e){} });
 }
 
 async function openPlantDetail(dbId){
