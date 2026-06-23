@@ -5489,7 +5489,230 @@ async function switchPlantTab(tabName){
 
 // ── Mini timeline for plant detail Overview ───────────────────────────────────
 // ── Unified Lifecycle Section: pill bar + date columns ────────────────────────
+// ── Mobile lifecycle: Phase Cards (tap to expand) ─────────────────────────────
+function toggleLcCard(dbId, key){
+  const expand=document.getElementById(`lc-exp-${dbId}-${key}`);
+  if(!expand) return;
+  const isOpen=expand.style.display!=='none';
+  // Close all others for this plant
+  document.querySelectorAll(`[id^="lc-exp-${dbId}-"]`).forEach(el=>{ el.style.display='none'; });
+  if(!isOpen) expand.style.display='block';
+}
+
+function buildLifecycleMobile(plant){
+  const isPerennial=!!plant.is_perennial;
+  const PHASES=[
+    {key:'planted',    planKey:null,                label:'Started Seeds',  short:'Planted',   canNA:false},
+    {key:'sprouting',  planKey:'planned_sprouting',  label:'Sprouted',       short:'Sprouted',  canNA:true},
+    {key:'flowering',  planKey:'planned_flowering',  label:'First Fruit',    short:'Fruit',     canNA:true},
+    {key:'harvesting', planKey:'planned_harvesting', label:'First Harvest',  short:'Harvest',   canNA:true},
+    isPerennial
+      ?{key:'_seasonEnd', planKey:null, label:'Season End', short:'Season', canNA:false}
+      :{key:'removed',    planKey:'planned_removed', label:'Finish Date',   short:'Finish',    canNA:false},
+  ];
+  const enriched={...plant};
+  if(isPerennial){
+    const yr=plant.planted?new Date(plant.planted+'T00:00:00').getFullYear():TODAY.getFullYear();
+    const sy=plant.removed?new Date(plant.removed+'T00:00:00').getFullYear():Math.max(yr,TODAY.getFullYear());
+    enriched._seasonEnd=`${sy}-12-31`;
+  }
+  const na=plant.phases_na||{};
+  const resolved=PHASES.map(p=>{
+    const isNA=p.canNA&&!!na[p.key];
+    if(isNA) return {...p,val:null,isProj:false,isNA:true};
+    const confirmed=enriched[p.key]||null;
+    const projected=!confirmed&&showProjections?enriched[p.planKey]:null;
+    return {...p,val:confirmed||projected,isProj:!confirmed&&!!projected,isNA:false};
+  });
+
+  // Find current phase (last confirmed)
+  const lastConfirmedIdx=resolved.reduce((acc,p,i)=>(!p.isProj&&!p.isNA&&p.val)?i:acc,-1);
+
+  const isDark=document.body.classList.contains('dark');
+  const phaseColors=['#4FA66A','#7BC043','#D5B56A','#E07B39','#7E877E'];
+  const dbId=plant._dbId, pid=plant.id;
+
+  const fmtDate=d=>{
+    if(!d) return '—';
+    const dt=new Date(d+'T00:00:00');
+    return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  };
+
+  // Mini SVG bar (simplified, scaled)
+  const activeCols=resolved.filter(p=>p.val);
+  let barHtml='';
+  if(activeCols.length>=2){
+    const pDate=new Date(activeCols[0].val+'T00:00:00');
+    const eDate=new Date(activeCols[activeCols.length-1].val+'T00:00:00');
+    if(eDate>pDate){
+      const total=eDate-pDate;
+      const W=400,H=12,R=6;
+      const px=ms=>Math.round(((ms-pDate.getTime())/total)*W);
+      const stops=activeCols.map(p=>{
+        const t=Math.max(0,Math.min(1,(new Date(p.val+'T00:00:00')-pDate)/total));
+        return `<stop offset="${(t*100).toFixed(1)}%" stop-color="${phaseColors[resolved.indexOf(p)]||'#7E877E'}"/>`;
+      }).join('');
+      const bg=isDark?'#303830':'#D8D3CC';
+      const todayMs=TODAY.getTime();
+      const todayPx=px(todayMs);
+      const todayIn=todayMs>pDate.getTime()&&todayMs<eDate.getTime();
+      barHtml=`<div style="margin-bottom:10px;padding:6px 8px;background:${isDark?'#242A24':'#EFEAE0'};border-radius:8px">
+        <svg viewBox="0 0 ${W} ${H+4}" style="width:100%;height:auto;display:block;overflow:visible">
+          <defs><clipPath id="lm${dbId.slice(-4)}"><rect width="${W}" height="${H}" rx="${R}"/></clipPath>
+          <linearGradient id="lmg${dbId.slice(-4)}" x1="0%" x2="100%">${stops}</linearGradient></defs>
+          <rect width="${W}" height="${H}" rx="${R}" fill="${bg}"/>
+          <g clip-path="url(#lm${dbId.slice(-4)})">
+            <rect width="${W}" height="${H}" fill="url(#lmg${dbId.slice(-4)})"/>
+            ${activeCols.find(p=>p.isProj)?`<rect x="${px(new Date(activeCols.find(p=>p.isProj).val+'T00:00:00').getTime())}" width="${W}" height="${H}" fill="${isDark?'#1D221D':'#EAE6DE'}" opacity=".7"/>`:''}
+          </g>
+          ${todayIn?`<line x1="${todayPx}" y1="-2" x2="${todayPx}" y2="${H+2}" stroke="${isDark?'#D96B6B':'#E05C30'}" stroke-width="1.5" opacity=".8"/>`:``}
+          ${activeCols.map((p,i)=>{
+            const cx=i===0?R:i===activeCols.length-1?W-R:px(new Date(p.val+'T00:00:00').getTime());
+            const bg2=isDark?(p.isProj?'rgba(40,48,40,.9)':'rgba(55,66,55,.95)'):(p.isProj?'rgba(200,194,187,.88)':'rgba(245,243,240,.95)');
+            const tc=isDark?(p.isProj?'#6E7E6E':'#C0CAC0'):(p.isProj?'#888':'#444');
+            const idx=resolved.indexOf(p);
+            return `<circle cx="${cx}" cy="${H/2}" r="5" fill="${bg2}"/>
+              <text x="${cx}" y="${H/2+2.5}" text-anchor="middle" font-size="6" fill="${tc}" font-family="DM Mono,monospace" font-weight="700">${idx+1}</text>`;
+          }).join('')}
+        </svg>
+      </div>`;
+    }
+  }
+
+  // Build phase cards
+  const cards=resolved.map((p,i)=>{
+    const color=phaseColors[i]||'#7E877E';
+    const isCurrent=(i===lastConfirmedIdx);
+
+    // Badge
+    let badge;
+    if(p.isNA){
+      badge=`<div style="width:24px;height:24px;border-radius:50%;background:${isDark?'#242A24':'#EFEAE0'};color:${isDark?'#5A6A60':'#999'};border:1px solid ${isDark?'#404840':'#D8D3CB'};display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">⊘</div>`;
+    } else if(p.isProj){
+      badge=`<div style="width:24px;height:24px;border-radius:50%;background:${isDark?'#242A24':'#EFEAE0'};color:${color};border:2px dashed ${color};opacity:.7;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;font-family:'DM Mono',monospace">${i+1}</div>`;
+    } else if(p.val){
+      const bg=isCurrent?color:(isDark?'#1D2A1D':'rgba(30,91,53,.08)');
+      const tc=isCurrent?(isDark?'#1A1E1A':'#fff'):color;
+      badge=`<div style="width:24px;height:24px;border-radius:50%;background:${bg};color:${tc};border:1.5px solid ${color};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;font-family:'DM Mono',monospace">${i+1}</div>`;
+    } else {
+      badge=`<div style="width:24px;height:24px;border-radius:50%;background:${isDark?'#242A24':'#EFEAE0'};color:${isDark?'#404840':'#C8C2BA'};border:1px dashed ${isDark?'#404840':'#C8C2BA'};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;font-family:'DM Mono',monospace">${i+1}</div>`;
+    }
+
+    // Date pill
+    let pill;
+    if(p.isNA){
+      pill=`<span style="font-size:10px;padding:2px 8px;border-radius:5px;background:${isDark?'#242A24':'#EFEAE0'};color:${isDark?'#5A6A60':'#999'};font-style:italic;font-family:'DM Mono',monospace">N/A</span>`;
+    } else if(p.isProj){
+      pill=`<span style="font-size:10px;padding:2px 8px;border-radius:5px;background:rgba(213,181,106,.1);color:#C0A860;font-style:italic;border:1px dashed rgba(213,181,106,.4);font-family:'DM Mono',monospace">~${fmtDate(p.val).replace(/,\s*\d{4}/,'')}</span>`;
+    } else if(p.val){
+      pill=`<span style="font-size:10px;padding:2px 8px;border-radius:5px;background:${isDark?'#242A24':'#EFEAE0'};color:${isDark?'#E7ECE7':'#1A2A20'};font-weight:600;font-family:'DM Mono',monospace">${fmtDate(p.val).replace(/,\s*\d{4}/,'')}</span>`;
+    } else {
+      pill=`<span style="font-size:10px;padding:2px 8px;color:${isDark?'#404840':'#C8C2BA'};font-style:italic;font-family:'DM Mono',monospace">Not set</span>`;
+    }
+
+    // Sub-label
+    const sub=isCurrent?`<div style="font-size:8px;color:${color};margin-top:1px">Current phase · ${plant.planted?Math.floor((TODAY-new Date((p.val||plant.planted)+'T00:00:00'))/86400000):0} days</div>`
+      :p.isProj?`<div style="font-size:8px;color:${isDark?'#6E7E6E':'#aaa'};margin-top:1px">Estimated from catalog</div>`:'';
+
+    // Card border
+    const border=isCurrent?`border:1px solid ${color}`
+      :p.isProj?`border:1px solid rgba(213,181,106,.35)`
+      :p.isNA?`border:1px solid ${isDark?'#404840':'#D8D3CB'}`
+      :`border:1px solid ${isDark?'#404840':'#D8D3CB'}`;
+
+    // Header
+    const hdr=`<div onclick="event.stopPropagation();toggleLcCard('${dbId}','${p.key}')"
+      style="display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;min-height:46px;${isCurrent?`background:${isDark?'rgba(79,166,106,.04)':'rgba(30,91,53,.02)'}`:''}"
+    >${badge}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;font-weight:600;color:${p.isNA?(isDark?'#7E877E':'#999'):'var(--text-body)'}">${p.label}</div>
+        ${sub}
+      </div>
+      ${pill}
+      <span style="font-size:8px;color:${isDark?'#5A6A60':'#C8C2BA'};margin-left:4px">▾</span>
+    </div>`;
+
+    // Expanded panel content
+    let expandBody;
+    if(p.isNA){
+      expandBody=`
+        <div style="display:flex;align-items:flex-start;gap:8px;background:${isDark?'rgba(91,168,214,.06)':'rgba(46,134,193,.04)'};border:1px solid ${isDark?'rgba(91,168,214,.2)':'rgba(46,134,193,.15)'};border-radius:7px;padding:10px;margin-bottom:10px">
+          <span style="font-size:14px;flex-shrink:0">ℹ️</span>
+          <div style="font-size:10px;color:var(--text-secondary);line-height:1.6">This phase is <strong style="color:var(--text-body)">skipped</strong> for this plant. It's excluded from the timeline. Re-enabling it will restore the date field.</div>
+        </div>
+        <button onclick="event.stopPropagation();togglePhaseNA('${dbId}','${pid}','${p.key}',false)"
+          style="width:100%;background:${isDark?'rgba(91,168,214,.15)':'rgba(46,134,193,.08)'};color:#5BA8D6;border:1px solid ${isDark?'rgba(91,168,214,.35)':'rgba(46,134,193,.3)'};border-radius:7px;padding:10px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;font-weight:600;margin-bottom:6px">
+          ↩ Re-enable Phase
+        </button>
+        <button onclick="event.stopPropagation();toggleLcCard('${dbId}','${p.key}')"
+          style="width:100%;background:transparent;color:var(--text-secondary);border:1px solid var(--border);border-radius:7px;padding:8px;font-size:10px;font-family:'DM Mono',monospace;cursor:pointer">
+          Keep as N/A
+        </button>`;
+    } else if(p.isProj){
+      const saveKey=p.planKey||p.key;
+      expandBody=`
+        <div style="display:flex;align-items:flex-start;gap:8px;background:rgba(213,181,106,.08);border:1px solid rgba(213,181,106,.25);border-radius:7px;padding:10px;margin-bottom:10px">
+          <span style="font-size:14px;flex-shrink:0">💡</span>
+          <div style="font-size:10px;color:#C0A860;line-height:1.6">This date is <strong style="color:#D5B56A">estimated</strong> from your catalog settings. Edit the field below and tap Confirm Date to record the actual date.</div>
+        </div>
+        <div style="font-size:9px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Confirmed date</div>
+        <input type="date" id="lc-inp-${dbId}-${p.key}" value="${p.val||''}"
+          style="width:100%;background:${isDark?'#1A1E1A':'#fff'};border:1px solid rgba(213,181,106,.5);border-radius:7px;padding:10px;font-size:13px;font-family:'DM Mono',monospace;color:#C0A860;font-style:italic;margin-bottom:4px;outline:none"
+          onfocus="this.style.color='var(--text-body)';this.style.fontStyle='normal';this.style.borderColor='#4FA66A'"
+          onclick="event.stopPropagation()"/>
+        <div style="font-size:9px;color:var(--text-secondary);margin-bottom:10px">Clear and save to remove the projection</div>
+        <div style="display:flex;gap:6px">
+          <button onclick="event.stopPropagation();saveLifecycleDate('${dbId}','${pid}','${saveKey}',document.getElementById('lc-inp-${dbId}-${p.key}').value)"
+            style="flex:1;background:var(--nav);color:#fff;border:none;border-radius:7px;padding:10px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;font-weight:600">
+            Confirm Date
+          </button>
+          ${p.canNA!==false?`<button onclick="event.stopPropagation();togglePhaseNA('${dbId}','${pid}','${p.key}',true)"
+            style="background:transparent;color:var(--text-secondary);border:1px solid var(--border);border-radius:7px;padding:10px;font-size:10px;font-family:'DM Mono',monospace;cursor:pointer">
+            N/A
+          </button>`:''}
+          <button onclick="event.stopPropagation();toggleLcCard('${dbId}','${p.key}')"
+            style="background:transparent;color:var(--text-secondary);border:1px solid var(--border);border-radius:7px;padding:10px;font-size:10px;font-family:'DM Mono',monospace;cursor:pointer">
+            ✕
+          </button>
+        </div>`;
+    } else {
+      // Confirmed or unset
+      expandBody=`
+        <div style="font-size:9px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Date</div>
+        <input type="date" id="lc-inp-${dbId}-${p.key}" value="${p.val||''}"
+          style="width:100%;background:${isDark?'#1A1E1A':'#fff'};border:1px solid var(--border);border-radius:7px;padding:10px;font-size:16px;font-family:'DM Mono',monospace;color:var(--text-body);margin-bottom:10px;outline:none"
+          onfocus="this.style.borderColor='#4FA66A'"
+          onclick="event.stopPropagation()"/>
+        <div style="display:flex;gap:6px">
+          <button onclick="event.stopPropagation();saveLifecycleDate('${dbId}','${pid}','${p.key}',document.getElementById('lc-inp-${dbId}-${p.key}').value)"
+            style="flex:1;background:var(--nav);color:#fff;border:none;border-radius:7px;padding:10px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;font-weight:600">
+            Save
+          </button>
+          ${p.canNA?`<button onclick="event.stopPropagation();togglePhaseNA('${dbId}','${pid}','${p.key}',true)"
+            style="background:transparent;color:var(--text-secondary);border:1px solid var(--border);border-radius:7px;padding:10px;font-size:10px;font-family:'DM Mono',monospace;cursor:pointer">
+            N/A
+          </button>`:''}
+          <button onclick="event.stopPropagation();toggleLcCard('${dbId}','${p.key}')"
+            style="background:transparent;color:var(--text-secondary);border:1px solid var(--border);border-radius:7px;padding:10px;font-size:10px;font-family:'DM Mono',monospace;cursor:pointer">
+            ✕
+          </button>
+        </div>`;
+    }
+
+    return `<div style="background:var(--card);border-radius:10px;overflow:hidden;${border}">
+      ${hdr}
+      <div id="lc-exp-${dbId}-${p.key}" style="display:none;padding:12px;border-top:1px solid var(--border);background:${isDark?'#242A24':'#EFEAE0'}">
+        ${expandBody}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div>${barHtml}<div style="display:flex;flex-direction:column;gap:7px">${cards}</div></div>`;
+}
+
 function buildLifecycleSection(plant){
+  if(window.innerWidth<=768) return buildLifecycleMobile(plant);
+
   const isPerennial = !!plant.is_perennial;
 
   const PHASES=[
