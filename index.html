@@ -3,6 +3,15 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<!-- ── PWA: installable on iPhone home screen ── -->
+<link rel="manifest" href="/manifest.json"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="GardenLog"/>
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"/>
+<meta name="theme-color" content="#1E5B35" media="(prefers-color-scheme: light)"/>
+<meta name="theme-color" content="#121612" media="(prefers-color-scheme: dark)"/>
+<!-- ── End PWA ── -->
 <title>GardenLog</title>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script>
@@ -7211,6 +7220,16 @@ async function saveActivityEntry(dbId, plantCode){
 
 
 initData();
+</script>
+<script>
+// Register PWA service worker
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.log('SW failed:', err));
+  });
+}
 </script>
 </body>
 </html>
