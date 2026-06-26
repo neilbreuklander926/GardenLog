@@ -5338,7 +5338,7 @@ function renderPlantLogList(search=""){
 
   list.innerHTML = Object.entries(groups).map(([family, fps])=>{
     const rows = fps.map(p=>{
-      const cat = CATALOG.find(c=>c.common_name===p.type||c.variety===p.type)||{};
+      const cat = CATALOG.find(c=>c.common_name===p.type||c.variety===p.type)||p._catalog||{};
       const imgHtml = cat.cover_photo_url
         ? `<img class="plog-img" src="${cat.cover_photo_url}" alt="${p.type}"/>`
         : `<div class="plog-img-ph">🌱</div>`;
@@ -5391,7 +5391,7 @@ async function openPlantDetail(dbId){
 
   const plant = PLANTS.find(p=>p._dbId===dbId);
   if(!plant) return;
-  const cat = CATALOG.find(c=>c.common_name===plant.type||c.variety===plant.type)||{};
+  const cat = CATALOG.find(c=>c.common_name===plant.type||c.variety===plant.type) || plant._catalog || {};
 
   // Breadcrumb + title
   document.getElementById("pd-breadcrumb").textContent=`${cat.category||plant.family||""} › ${cat.subcategory||""}`;
@@ -5442,7 +5442,7 @@ function plogArchiveToggle(dbId){
   }
   // If we're inside a detail view, refresh the overview tab
   if(currentDetailPlantId===dbId){
-    const cat=CATALOG.find(c=>c.common_name===plant?.type||c.variety===plant?.type)||{};
+    const cat=CATALOG.find(c=>c.common_name===plant?.type||c.variety===plant?.type)||plant?._catalog||{};
     renderPlantDetailTab("overview", plant, cat);
   }
   renderPlantLogList();
@@ -5492,7 +5492,7 @@ async function switchPlantTab(tabName){
   currentDetailTab=tabName;
   document.querySelectorAll(".pd-tab").forEach(b=>b.classList.toggle("active",b.dataset.pdtab===tabName));
   const plant=PLANTS.find(p=>p._dbId===currentDetailPlantId);
-  const cat=CATALOG.find(c=>c.common_name===plant?.type||c.variety===plant?.type)||{};
+  const cat=CATALOG.find(c=>c.common_name===plant?.type||c.variety===plant?.type)||plant?._catalog||{};
   await renderPlantDetailTab(tabName, plant, cat);
 }
 
@@ -5885,7 +5885,7 @@ async function togglePhaseNA(dbId, plantCode, phaseKey, isNA){
   await supa.from('plants').update({phases_na:updated}).eq('id',dbId);
   plant.phases_na=updated;
   render();
-  const cat=CATALOG.find(c=>c.id===plant.catalog_id)||{};
+  const cat=CATALOG.find(c=>c.id===plant.catalog_id)||plant._catalog||{};
   renderPlantDetailTab('overview',plant,cat);
 }
 
@@ -5919,7 +5919,7 @@ async function saveLifecycleDate(dbId, plantCode, phaseKey, value){
   // Re-render the lifecycle section so the input style updates immediately
   const openPlant=PLANTS.find(p=>p._dbId===dbId);
   if(openPlant && document.getElementById('pd-content')){
-    const cat=CATALOG.find(c=>c.id===openPlant.catalog_id)||{};
+    const cat=CATALOG.find(c=>c.id===openPlant.catalog_id)||openPlant._catalog||{};
     renderPlantDetailTab('overview', openPlant, cat);
   }
 }
@@ -7211,7 +7211,7 @@ async function saveActivityEntry(dbId, plantCode){
   DAILY_LOGS[key].fertilizer=fert&&fertType?fertType:(fert?"other":null);
   if(qty>0) DAILY_LOGS[key].harvest=qty;
   const plant=PLANTS.find(p=>p._dbId===dbId);
-  const cat=CATALOG.find(c=>c.common_name===plant?.type||c.variety===plant?.type)||{};
+  const cat=CATALOG.find(c=>c.common_name===plant?.type||c.variety===plant?.type)||plant?._catalog||{};
   await renderPlantDetailTab("activity",plant,cat);
   render();
 }
